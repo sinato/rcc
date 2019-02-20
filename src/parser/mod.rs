@@ -1,23 +1,46 @@
 use crate::lexer::Token;
+use inkwell::builder::Builder;
+use inkwell::context::Context;
 
 #[derive(Debug, PartialEq)]
-struct AstExp {
+pub struct AstExp {
     op: Token,
     lhs: Token,
     rhs: Token,
 }
+
 #[derive(Debug, PartialEq)]
-struct AstNum {
+pub struct AstNum {
     num: Token,
+}
+impl AstNum {
+    fn get_num(&self) -> u64 {
+        match self.num {
+            Token::Num(n) => n,
+            _ => panic!("expect num token"),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
-enum Ast {
+pub enum Ast {
     Exp(AstExp),
     Num(AstNum),
 }
+impl Ast {
+    pub fn emit(&self, context: &Context, builder: &Builder) {
+        match self {
+            Ast::Exp(_) => (),
+            Ast::Num(ast_num) => {
+                let num = ast_num.get_num();
+                let a = context.i32_type().const_int(num, false);
+                builder.build_return(Some(&a));
+            }
+        }
+    }
+}
 
-fn parser(tokens: Vec<Token>) -> Ast {
+pub fn parser(tokens: Vec<Token>) -> Ast {
     match tokens.len() {
         1 => match tokens[0] {
             Token::Num(_) => Ast::Num(AstNum {

@@ -4,7 +4,7 @@ pub enum Token {
     Op(String),
 }
 
-fn lexer(code: String) -> Vec<Token> {
+pub fn lexer(code: String) -> Vec<Token> {
     let elements = code.split(" ").collect::<Vec<&str>>();
     println!("elements: {:?}", elements);
 

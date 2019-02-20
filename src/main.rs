@@ -4,7 +4,9 @@ use inkwell::context::Context;
 use std::{env, path, process};
 
 mod lexer;
+use lexer::lexer;
 mod parser;
+use parser::parser;
 
 fn compiler(code: String) {
     // initialize
@@ -18,9 +20,9 @@ fn compiler(code: String) {
     builder.position_at_end(&basic_block);
 
     // define main function
-    let num = code.parse::<u64>().unwrap();
-    let a = context.i32_type().const_int(num, false);
-    builder.build_return(Some(&a));
+    let tokens = lexer(code);
+    let ast = parser(tokens);
+    ast.emit(&context, &builder);
 
     // print_to_file
     let _ = module.print_to_file(path::Path::new("compiled.ll"));

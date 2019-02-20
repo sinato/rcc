@@ -26,10 +26,27 @@ fn parser(tokens: Vec<Token>) -> Ast {
             Token::Op(_) => panic!("Not implemented"),
         },
         3 => {
-            // TODO: token type validation
-            let lhs = tokens[0].clone();
-            let op = tokens[1].clone();
-            let rhs = tokens[2].clone();
+            let lhs = match tokens[0] {
+                Token::Num(_) => tokens[0].clone(),
+                _ => panic!(format!(
+                    "Parse Error: Expect Token::Num, but got {:?}",
+                    tokens[0]
+                )),
+            };
+            let op = match tokens[1] {
+                Token::Op(_) => tokens[1].clone(),
+                _ => panic!(format!(
+                    "Parse Error: Expect Token::Op, but got {:?}",
+                    tokens[1]
+                )),
+            };
+            let rhs = match tokens[2] {
+                Token::Num(_) => tokens[2].clone(),
+                _ => panic!(format!(
+                    "Parse Error: Expect Token::Num, but got {:?}",
+                    tokens[2]
+                )),
+            };
             Ast::Exp(AstExp { op, lhs, rhs })
         }
         _ => panic!("Not implemented"),
@@ -54,6 +71,20 @@ mod tests {
     #[should_panic]
     fn test_parser_num_illegal() {
         let tokens = vec![Token::Op(String::from("+"))];
+        parser(tokens);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_parser_illegal_tokens() {
+        let tokens = vec![Token::Num(2434), Token::Op(String::from("+"))];
+        parser(tokens);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_parser_exp_illegal_tokens() {
+        let tokens = vec![Token::Num(2434), Token::Num(2434), Token::Num(2434)];
         parser(tokens);
     }
 

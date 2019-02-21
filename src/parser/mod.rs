@@ -75,46 +75,43 @@ impl Ast {
     }
 }
 
-pub fn parser(tokens: Vec<Token>) -> Ast {
-    match tokens.len() {
-        1 => match tokens[0] {
-            Token::Num(_) => Ast::Num(AstNum {
-                num: tokens[0].clone(),
-            }),
-            Token::Op(_) => panic!("Not implemented"),
+pub fn parser(mut tokens: Vec<Token>) -> Ast {
+    tokens.reverse();
+    let token = tokens.pop();
+    let lhs = match token {
+        Some(token) => match token {
+            Token::Num(_) => AstNum { num: token },
+            _ => panic!("Parse Error: Expect a number token."),
         },
-        3 => {
-            let lhs = match tokens[0] {
-                Token::Num(_) => tokens[0].clone(),
-                _ => panic!(format!(
-                    "Parse Error: Expect Token::Num, but got {:?}",
-                    tokens[0]
-                )),
-            };
-            let op = match tokens[1].clone() {
-                Token::Op(s) => match s.as_ref() {
-                    "+" => tokens[1].clone(),
-                    _ => panic!("Parse Error: Not implemented operator"),
-                },
-                _ => panic!(format!(
-                    "Parse Error: Expect Token::Op, but got {:?}",
-                    tokens[1]
-                )),
-            };
-            let rhs = match tokens[2] {
-                Token::Num(_) => tokens[2].clone(),
-                _ => panic!(format!(
-                    "Parse Error: Expect Token::Num, but got {:?}",
-                    tokens[2]
-                )),
-            };
-            let op = AstOp { op };
-            let lhs = AstNum { num: lhs };
-            let rhs = AstNum { num: rhs };
-            Ast::Exp(AstExp { op, lhs, rhs })
-        }
-        _ => panic!("Not implemented"),
+        None => panic!("Parse Error: Expect at least one token."),
+    };
+    if tokens.len() < 1 {
+        return Ast::Num(lhs);
     }
+    let token = tokens.pop();
+
+    let op = match token {
+        Some(token) => match token {
+            Token::Op(operator) => match operator.as_ref() {
+                "+" => AstOp {
+                    op: Token::Op(operator),
+                },
+                _ => panic!("Parse Error: Not implemented oprator."),
+            },
+            _ => panic!("Parse Error: Expect operator token, but got otherwise."),
+        },
+        None => panic!("Parse Error: Expect operator token, but not exist."),
+    };
+    let token = tokens.pop();
+    let rhs = match token {
+        Some(token) => match token {
+            Token::Num(_) => AstNum { num: token },
+            _ => panic!("Parse Error: Expect number token, but got otherwise."),
+        },
+        None => panic!("Parse Error: Expect operator token, but not exist."),
+    };
+
+    Ast::Exp(AstExp { lhs, op, rhs })
 }
 
 #[cfg(test)]
@@ -149,6 +146,17 @@ mod tests {
     #[should_panic]
     fn test_parser_exp_illegal_tokens() {
         let tokens = vec![Token::Num(2434), Token::Num(2434), Token::Num(2434)];
+        parser(tokens);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_parser_exp_illegal_tokens2() {
+        let tokens = vec![
+            Token::Num(2434),
+            Token::Op(String::from("+")),
+            Token::Op(String::from("+")),
+        ];
         parser(tokens);
     }
 

@@ -8,6 +8,26 @@ pub struct AstExp {
     lhs: Token,
     rhs: Token,
 }
+impl AstExp {
+    fn get_op_string(&self) -> String {
+        match self.op.clone() {
+            Token::Op(s) => s,
+            _ => panic!("expect op token"),
+        }
+    }
+    fn get_lhs_num(&self) -> u64 {
+        match self.lhs {
+            Token::Num(n) => n,
+            _ => panic!("expect num token"),
+        }
+    }
+    fn get_rhs_num(&self) -> u64 {
+        match self.rhs {
+            Token::Num(n) => n,
+            _ => panic!("expect num token"),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct AstNum {
@@ -30,7 +50,13 @@ pub enum Ast {
 impl Ast {
     pub fn emit(&self, context: &Context, builder: &Builder) {
         match self {
-            Ast::Exp(_) => (),
+            Ast::Exp(ast_exp) => {
+                let i32_type = context.i32_type();
+                let const_lhs_num = i32_type.const_int(ast_exp.get_lhs_num(), false);
+                let const_rhs_num = i32_type.const_int(ast_exp.get_rhs_num(), false);
+                let sum = builder.build_int_add(const_lhs_num, const_rhs_num, "main");
+                builder.build_return(Some(&sum));
+            }
             Ast::Num(ast_num) => {
                 let num = ast_num.get_num();
                 let a = context.i32_type().const_int(num, false);

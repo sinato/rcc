@@ -28,3 +28,13 @@ fn test_one_num() {
 fn test_one_num2() {
     run("22", "22");
 }
+
+#[test]
+fn test_binary_addition() {
+    run("10 + 20", "30");
+}
+
+#[test]
+fn test_binary_addition2() {
+    run("5 + 17", "22");
+}

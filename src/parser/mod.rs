@@ -51,11 +51,16 @@ impl Ast {
     pub fn emit(&self, context: &Context, builder: &Builder) {
         match self {
             Ast::Exp(ast_exp) => {
-                let i32_type = context.i32_type();
-                let const_lhs_num = i32_type.const_int(ast_exp.get_lhs_num(), false);
-                let const_rhs_num = i32_type.const_int(ast_exp.get_rhs_num(), false);
-                let sum = builder.build_int_add(const_lhs_num, const_rhs_num, "main");
-                builder.build_return(Some(&sum));
+                let op = ast_exp.get_op_string();
+                if op == String::from("+") {
+                    let i32_type = context.i32_type();
+                    let const_lhs_num = i32_type.const_int(ast_exp.get_lhs_num(), false);
+                    let const_rhs_num = i32_type.const_int(ast_exp.get_rhs_num(), false);
+                    let sum = builder.build_int_add(const_lhs_num, const_rhs_num, "main");
+                    builder.build_return(Some(&sum));
+                } else {
+                    panic!("Emit Error: Not implemented operator");
+                }
             }
             Ast::Num(ast_num) => {
                 let num = ast_num.get_num();
@@ -82,8 +87,11 @@ pub fn parser(tokens: Vec<Token>) -> Ast {
                     tokens[0]
                 )),
             };
-            let op = match tokens[1] {
-                Token::Op(_) => tokens[1].clone(),
+            let op = match tokens[1].clone() {
+                Token::Op(s) => match s.as_ref() {
+                    "+" => tokens[1].clone(),
+                    _ => panic!("Parse Error: Not implemented operator"),
+                },
                 _ => panic!(format!(
                     "Parse Error: Expect Token::Op, but got {:?}",
                     tokens[1]
@@ -134,6 +142,17 @@ mod tests {
     #[should_panic]
     fn test_parser_exp_illegal_tokens() {
         let tokens = vec![Token::Num(2434), Token::Num(2434), Token::Num(2434)];
+        parser(tokens);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_parser_exp_noimplemented_operator() {
+        let tokens = vec![
+            Token::Num(2434),
+            Token::Op(String::from("-")),
+            Token::Num(2434),
+        ];
         parser(tokens);
     }
 

@@ -4,28 +4,19 @@ use inkwell::context::Context;
 
 #[derive(Debug, PartialEq)]
 pub struct AstExp {
-    op: Token,
-    lhs: Token,
-    rhs: Token,
+    op: AstOp,
+    lhs: AstNum,
+    rhs: AstNum,
 }
 impl AstExp {
     fn get_op_string(&self) -> String {
-        match self.op.clone() {
-            Token::Op(s) => s,
-            _ => panic!("expect op token"),
-        }
+        self.op.get_op()
     }
     fn get_lhs_num(&self) -> u64 {
-        match self.lhs {
-            Token::Num(n) => n,
-            _ => panic!("expect num token"),
-        }
+        self.lhs.get_num()
     }
     fn get_rhs_num(&self) -> u64 {
-        match self.rhs {
-            Token::Num(n) => n,
-            _ => panic!("expect num token"),
-        }
+        self.rhs.get_num()
     }
 }
 
@@ -38,6 +29,19 @@ impl AstNum {
         match self.num {
             Token::Num(n) => n,
             _ => panic!("expect num token"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct AstOp {
+    op: Token,
+}
+impl AstOp {
+    fn get_op(&self) -> String {
+        match self.op.clone() {
+            Token::Op(s) => s,
+            _ => panic!("expect operator"),
         }
     }
 }
@@ -104,6 +108,9 @@ pub fn parser(tokens: Vec<Token>) -> Ast {
                     tokens[2]
                 )),
             };
+            let op = AstOp { op };
+            let lhs = AstNum { num: lhs };
+            let rhs = AstNum { num: rhs };
             Ast::Exp(AstExp { op, lhs, rhs })
         }
         _ => panic!("Not implemented"),
@@ -159,9 +166,15 @@ mod tests {
     #[test]
     fn test_parser_exp() {
         let expect = Ast::Exp(AstExp {
-            op: Token::Op(String::from("+")),
-            lhs: Token::Num(10),
-            rhs: Token::Num(20),
+            op: AstOp {
+                op: Token::Op(String::from("+")),
+            },
+            lhs: AstNum {
+                num: Token::Num(10),
+            },
+            rhs: AstNum {
+                num: Token::Num(20),
+            },
         });
         let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20)];
         let actual = parser(tokens);

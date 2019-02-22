@@ -1,4 +1,6 @@
+extern crate env_logger;
 extern crate inkwell;
+extern crate log;
 
 use inkwell::context::Context;
 use std::{env, path, process};
@@ -29,6 +31,7 @@ fn compiler(code: String) {
 }
 
 fn main() {
+    env_logger::init();
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         eprintln!("Usage rcc \"<code>\"");

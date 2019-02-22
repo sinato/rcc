@@ -1,6 +1,7 @@
 use crate::lexer::Token;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
+use log::debug;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstBinaryExp {
@@ -104,7 +105,7 @@ pub fn parser(mut tokens: Vec<Token>) -> Ast {
         None => panic!("Parse Error: Expect at least one token."),
     };
 
-    // debug!("FIRST LHS: {:?}", lhs);
+    debug!("FIRST LHS: {:?}", lhs);
     loop {
         let token = tokens.pop();
         let op = match token {
@@ -134,9 +135,9 @@ pub fn parser(mut tokens: Vec<Token>) -> Ast {
             op,
             rhs,
         });
-        // debug!("LHS:       {:?}", lhs);
+        debug!("LHS:       {:?}", lhs);
     }
-    // debug!("LAST LHS:  {:?}", lhs);
+    debug!("LAST LHS:  {:?}", lhs);
     Ast { ast: lhs }
 }
 

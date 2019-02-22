@@ -219,4 +219,39 @@ mod tests {
         assert_eq!(actual, expect);
     }
 
+    #[test]
+    fn test_parser_exp_three_terms() {
+        // make expected lhs
+        let lhs = Box::new(AstNode::Num(AstNum {
+            num: Token::Num(10),
+        }));
+        let op = AstOp {
+            op: Token::Op(String::from("+")),
+        };
+        let rhs = Box::new(AstNode::Num(AstNum {
+            num: Token::Num(20),
+        }));
+        let lhs = Box::new(AstNode::Exp(AstBinaryExp { lhs, op, rhs }));
+
+        // make expected ast
+        let op = AstOp {
+            op: Token::Op(String::from("+")),
+        };
+        let rhs = Box::new(AstNode::Num(AstNum {
+            num: Token::Num(30),
+        }));
+        let expect = Ast {
+            ast: AstNode::Exp(AstBinaryExp { lhs, op, rhs }),
+        };
+        let tokens = vec![
+            Token::Num(10),
+            Token::Op(String::from("+")),
+            Token::Num(20),
+            Token::Op(String::from("+")),
+            Token::Num(30),
+        ];
+        let actual = parser(tokens);
+        assert_eq!(actual, expect);
+    }
+
 }

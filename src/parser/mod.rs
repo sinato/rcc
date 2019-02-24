@@ -31,9 +31,12 @@ impl AstBinaryExp {
     fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
         let lhs_num = self.get_lhs_num(context, builder);
         let rhs_num = self.get_rhs_num(context, builder);
-
-        // TODO: add exeption for the other opertors.
-        builder.build_int_add(lhs_num, rhs_num, "sum")
+        let op = self.get_op_string();
+        match op.as_ref() {
+            "+" => builder.build_int_add(lhs_num, rhs_num, "sum"),
+            "*" => builder.build_int_mul(lhs_num, rhs_num, "mul"),
+            _ => panic!("Emit Error: Not implemented operator"),
+        }
     }
 }
 
@@ -42,13 +45,7 @@ pub struct AstNum {
     num: Token,
 }
 impl AstNum {
-    fn get_num(&self) -> u64 {
-        match self.num {
-            Token::Num(n) => n,
-            _ => panic!("expect num token"),
-        }
-    }
-    fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
+    fn emit(&self, context: &Context, _builder: &Builder) -> IntValue {
         context.i32_type().const_int(self.num.get_num(), false)
     }
 }
@@ -108,7 +105,7 @@ pub fn parser(mut tokens: Vec<Token>) -> Ast {
         let op = match token {
             Some(token) => match token {
                 Token::Op(operator) => match operator.as_ref() {
-                    "+" => AstOp {
+                    "+" | "*" => AstOp {
                         op: Token::Op(operator),
                     },
                     _ => panic!("Parse Error: Not implemented oprator."),
@@ -232,7 +229,7 @@ mod tests {
 
         // make expected ast
         let op = AstOp {
-            op: Token::Op(String::from("+")),
+            op: Token::Op(String::from("*")),
         };
         let rhs = Box::new(AstNode::Num(AstNum {
             num: Token::Num(30),
@@ -244,7 +241,7 @@ mod tests {
             Token::Num(10),
             Token::Op(String::from("+")),
             Token::Num(20),
-            Token::Op(String::from("+")),
+            Token::Op(String::from("*")),
             Token::Num(30),
         ];
         let actual = parser(tokens);

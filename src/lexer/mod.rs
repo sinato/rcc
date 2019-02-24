@@ -27,7 +27,7 @@ pub fn lexer(code: String) -> Vec<Token> {
                 .parse::<u64>()
                 .expect(&format!("Expect a number, but got {}", element));
             tokens.push(Token::Num(num));
-        } else if first_char == '+' {
+        } else if first_char == '+' || first_char == '*' {
             tokens.push(Token::Op(element.to_string()));
         } else {
             panic!(format!("This token is not implemented: {:?}", element));
@@ -44,6 +44,14 @@ mod tests {
     fn test_lexer_add() {
         let code = String::from("10 + 20");
         let expect = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20)];
+        let actual = lexer(code);
+        assert_eq!(actual, expect);
+    }
+
+    #[test]
+    fn test_lexer_mul() {
+        let code = String::from("10 * 20");
+        let expect = vec![Token::Num(10), Token::Op(String::from("*")), Token::Num(20)];
         let actual = lexer(code);
         assert_eq!(actual, expect);
     }

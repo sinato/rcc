@@ -1,9 +1,8 @@
-use crate::lexer::Token;
+use crate::lexer::{Token, Tokens};
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::values::IntValue;
 use log::debug;
-use std::collections::HashMap;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -101,20 +100,9 @@ impl Ast {
     }
 }
 
-fn condition1_is_ok(tokens: &Vec<Token>, min_precedence: u32) -> bool {
-    let mut tokens = tokens.clone();
-    let mut map = HashMap::new();
-    map.insert(String::from("+"), 10);
-    map.insert(String::from("*"), 20);
-    let token = tokens.pop();
-    let precedence: Option<u32> = match token {
-        Some(token) => match token {
-            Token::Op(operator) => match operator.as_ref() {
-                "+" | "*" => Some(map[&operator]),
-                _ => panic!("Parse Error: Not implemented oprator."),
-            },
-            _ => panic!("Parse Error: Expect operator token, but got otherwise."),
-        },
+fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
+    let precedence: Option<u32> = match tokens.clone().pop_op() {
+        Some(operator) => Some(tokens.get_precedence(operator)),
         None => None,
     };
     match precedence {
@@ -123,20 +111,9 @@ fn condition1_is_ok(tokens: &Vec<Token>, min_precedence: u32) -> bool {
     }
 }
 
-fn condition2_is_ok(tokens: &Vec<Token>, given_precedence: u32) -> bool {
-    let mut tokens = tokens.clone();
-    let mut map = HashMap::new();
-    map.insert(String::from("+"), 10);
-    map.insert(String::from("*"), 20);
-    let token = tokens.pop();
-    let precedence: Option<u32> = match token {
-        Some(token) => match token {
-            Token::Op(operator) => match operator.as_ref() {
-                "+" | "*" => Some(map[&operator]),
-                _ => panic!("Parse Error: Not implemented oprator."),
-            },
-            _ => panic!("Parse Error: Expect operator token, but got otherwise."),
-        },
+fn condition2_is_ok(tokens: &Tokens, given_precedence: u32) -> bool {
+    let precedence: Option<u32> = match tokens.clone().pop_op() {
+        Some(operator) => Some(tokens.get_precedence(operator)),
         None => None,
     };
     match precedence {
@@ -145,20 +122,19 @@ fn condition2_is_ok(tokens: &Vec<Token>, given_precedence: u32) -> bool {
     }
 }
 
-fn parse_expression(
-    mut lhs: AstNode,
-    min_precedence: u32,
-    tokens: Vec<Token>,
-) -> (AstNode, Vec<Token>) {
-    // operator priorities
-    let mut map = HashMap::new();
-    map.insert(String::from("+"), 10);
-    map.insert(String::from("*"), 20);
+/// [Reference: Oprator-precedence parser](https://en.wikipedia.org/wiki/Operator-precedence_parser)
+fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (AstNode, Tokens) {
     let mut tokens = tokens.clone();
     while condition1_is_ok(&tokens, min_precedence) {
-        let op: Token = tokens.pop().expect("Expect an operator token"); // TODO: validation
-        let precedence = map[&op.get_op()];
-        let rhs: Token = tokens.pop().expect("Expect a number token"); // TODO: validation
+        let op: Token = match tokens.pop_op() {
+            Some(op) => Token::Op(op),
+            None => panic!("Parse Error: Expect a number token"),
+        };
+        let precedence = tokens.get_precedence(op.get_op());
+        let rhs: Token = match tokens.pop_num() {
+            Some(num) => Token::Num(num),
+            None => panic!("Parse Error: Expect a number token"),
+        };
         let mut rhs = AstNode::Num(AstNum { num: rhs });
         while condition2_is_ok(&tokens, precedence) {
             let (ret_rhs, ret_tokens) = parse_expression(rhs, precedence, tokens);
@@ -174,7 +150,7 @@ fn parse_expression(
     (lhs, tokens)
 }
 
-pub fn parser(mut tokens: Vec<Token>) -> Ast {
+pub fn parser(mut tokens: Tokens) -> Ast {
     tokens.reverse();
     let token = tokens.pop();
     let mut lhs = match token {
@@ -203,6 +179,7 @@ mod tests {
             }),
         };
         let tokens = vec![Token::Num(2434)];
+        let tokens = Tokens { tokens };
         let actual = parser(tokens);
         assert_eq!(actual, expect);
     }
@@ -211,6 +188,7 @@ mod tests {
     #[should_panic]
     fn test_parser_num_illegal() {
         let tokens = vec![Token::Op(String::from("+"))];
+        let tokens = Tokens { tokens };
         parser(tokens);
     }
 
@@ -218,6 +196,7 @@ mod tests {
     #[should_panic]
     fn test_parser_illegal_tokens() {
         let tokens = vec![Token::Num(2434), Token::Op(String::from("+"))];
+        let tokens = Tokens { tokens };
         parser(tokens);
     }
 
@@ -225,18 +204,19 @@ mod tests {
     #[should_panic]
     fn test_parser_exp_illegal_tokens() {
         let tokens = vec![Token::Num(2434), Token::Num(2434), Token::Num(2434)];
+        let tokens = Tokens { tokens };
         parser(tokens);
     }
 
     #[test]
     #[should_panic]
-    #[ignore]
     fn test_parser_exp_illegal_tokens2() {
         let tokens = vec![
             Token::Num(2434),
             Token::Op(String::from("+")),
             Token::Op(String::from("+")),
         ];
+        let tokens = Tokens { tokens };
         parser(tokens);
     }
 
@@ -248,6 +228,7 @@ mod tests {
             Token::Op(String::from("-")),
             Token::Num(2434),
         ];
+        let tokens = Tokens { tokens };
         parser(tokens);
     }
 
@@ -266,6 +247,7 @@ mod tests {
             ast: AstNode::Exp(AstBinaryExp { lhs, op, rhs }),
         };
         let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20)];
+        let tokens = Tokens { tokens };
         let actual = parser(tokens);
         assert_eq!(actual, expect);
     }
@@ -304,6 +286,7 @@ mod tests {
             Token::Op(String::from("*")),
             Token::Num(30),
         ];
+        let tokens = Tokens { tokens };
         let actual = parser(tokens);
         assert_eq!(actual, expect);
     }

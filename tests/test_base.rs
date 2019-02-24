@@ -43,3 +43,23 @@ fn test_binary_addition2() {
 fn test_binary_addition_multi_term() {
     run("1 + 2 + 3 + 4", "10");
 }
+
+#[test]
+fn test_prioritize_expression() {
+    run("1 + 2 * 3", "7");
+}
+
+#[test]
+fn test_prioritize_expression2() {
+    run("1 + 2 * 3 * 4", "25");
+}
+
+#[test]
+fn test_prioritize_expression3() {
+    run("1 * 2 + 3 * 4", "14");
+}
+
+#[test]
+fn test_prioritize_expression4() {
+    run("2 + 3 * 4", "14");
+}

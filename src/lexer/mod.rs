@@ -10,6 +10,12 @@ impl Token {
             _ => panic!("Token Error: Expcet a number token"),
         }
     }
+    pub fn get_op(&self) -> String {
+        match self.clone() {
+            Token::Op(op) => op,
+            _ => panic!("Token Error: Expcet an operator token"),
+        }
+    }
 }
 
 pub fn lexer(code: String) -> Vec<Token> {

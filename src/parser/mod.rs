@@ -3,6 +3,8 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::values::IntValue;
 use log::debug;
+use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstBinaryExp {
@@ -31,6 +33,15 @@ impl AstBinaryExp {
             "*" => builder.build_int_mul(lhs_num, rhs_num, "mul"),
             _ => panic!("Emit Error: Not implemented operator"),
         }
+    }
+}
+impl fmt::Display for AstBinaryExp {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "OP: {:?}\nLHS: {:?}\nRHS: {:?}\n",
+            self.op, *self.lhs, *self.rhs
+        )
     }
 }
 
@@ -70,6 +81,14 @@ impl AstNode {
         }
     }
 }
+impl fmt::Display for AstNode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            AstNode::Exp(ast_binary_exp) => write!(f, "EXP: {}\n", ast_binary_exp),
+            AstNode::Num(ast_num) => write!(f, "NUM: {:?}\n", ast_num),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Ast {
@@ -82,6 +101,79 @@ impl Ast {
     }
 }
 
+fn condition1_is_ok(tokens: &Vec<Token>, min_precedence: u32) -> bool {
+    let mut tokens = tokens.clone();
+    let mut map = HashMap::new();
+    map.insert(String::from("+"), 10);
+    map.insert(String::from("*"), 20);
+    let token = tokens.pop();
+    let precedence: Option<u32> = match token {
+        Some(token) => match token {
+            Token::Op(operator) => match operator.as_ref() {
+                "+" | "*" => Some(map[&operator]),
+                _ => panic!("Parse Error: Not implemented oprator."),
+            },
+            _ => panic!("Parse Error: Expect operator token, but got otherwise."),
+        },
+        None => None,
+    };
+    match precedence {
+        Some(precedence) => precedence >= min_precedence,
+        None => false,
+    }
+}
+
+fn condition2_is_ok(tokens: &Vec<Token>, given_precedence: u32) -> bool {
+    let mut tokens = tokens.clone();
+    let mut map = HashMap::new();
+    map.insert(String::from("+"), 10);
+    map.insert(String::from("*"), 20);
+    let token = tokens.pop();
+    let precedence: Option<u32> = match token {
+        Some(token) => match token {
+            Token::Op(operator) => match operator.as_ref() {
+                "+" | "*" => Some(map[&operator]),
+                _ => panic!("Parse Error: Not implemented oprator."),
+            },
+            _ => panic!("Parse Error: Expect operator token, but got otherwise."),
+        },
+        None => None,
+    };
+    match precedence {
+        Some(precedence) => precedence > given_precedence,
+        None => false,
+    }
+}
+
+fn parse_expression(
+    mut lhs: AstNode,
+    min_precedence: u32,
+    tokens: Vec<Token>,
+) -> (AstNode, Vec<Token>) {
+    // operator priorities
+    let mut map = HashMap::new();
+    map.insert(String::from("+"), 10);
+    map.insert(String::from("*"), 20);
+    let mut tokens = tokens.clone();
+    while condition1_is_ok(&tokens, min_precedence) {
+        let op: Token = tokens.pop().expect("Expect an operator token"); // TODO: validation
+        let precedence = map[&op.get_op()];
+        let rhs: Token = tokens.pop().expect("Expect a number token"); // TODO: validation
+        let mut rhs = AstNode::Num(AstNum { num: rhs });
+        while condition2_is_ok(&tokens, precedence) {
+            let (ret_rhs, ret_tokens) = parse_expression(rhs, precedence, tokens);
+            rhs = ret_rhs;
+            tokens = ret_tokens;
+        }
+        lhs = AstNode::Exp(AstBinaryExp {
+            lhs: Box::new(lhs),
+            op: AstOp { op: op },
+            rhs: Box::new(rhs),
+        });
+    }
+    (lhs, tokens)
+}
+
 pub fn parser(mut tokens: Vec<Token>) -> Ast {
     tokens.reverse();
     let token = tokens.pop();
@@ -92,40 +184,10 @@ pub fn parser(mut tokens: Vec<Token>) -> Ast {
         },
         None => panic!("Parse Error: Expect at least one token."),
     };
+    let (returned_lhs, _returned_tokens) = parse_expression(lhs, 0, tokens);
+    lhs = returned_lhs;
+    debug!("AST:\n {}", lhs);
 
-    debug!("FIRST LHS: {:?}", lhs);
-    loop {
-        let token = tokens.pop();
-        let op = match token {
-            Some(token) => match token {
-                Token::Op(operator) => match operator.as_ref() {
-                    "+" | "*" => AstOp {
-                        op: Token::Op(operator),
-                    },
-                    _ => panic!("Parse Error: Not implemented oprator."),
-                },
-                _ => panic!("Parse Error: Expect operator token, but got otherwise."),
-            },
-            None => break,
-        };
-        let token = tokens.pop();
-        let rhs = match token {
-            Some(token) => match token {
-                Token::Num(_) => AstNode::Num(AstNum { num: token }),
-                _ => panic!("Parse Error: Expect number token, but got otherwise."),
-            },
-            None => panic!("Parse Error: Expect operator token, but not exist."),
-        };
-        let boxed_lhs = Box::new(lhs);
-        let rhs = Box::new(rhs);
-        lhs = AstNode::Exp(AstBinaryExp {
-            lhs: boxed_lhs,
-            op,
-            rhs,
-        });
-        debug!("LHS:       {:?}", lhs);
-    }
-    debug!("LAST LHS:  {:?}", lhs);
     Ast { ast: lhs }
 }
 
@@ -168,6 +230,7 @@ mod tests {
 
     #[test]
     #[should_panic]
+    #[ignore]
     fn test_parser_exp_illegal_tokens2() {
         let tokens = vec![
             Token::Num(2434),
@@ -209,25 +272,28 @@ mod tests {
 
     #[test]
     fn test_parser_exp_three_terms() {
-        // make expected lhs
+        // make expected rhs
         let lhs = Box::new(AstNode::Num(AstNum {
-            num: Token::Num(10),
-        }));
-        let op = AstOp {
-            op: Token::Op(String::from("+")),
-        };
-        let rhs = Box::new(AstNode::Num(AstNum {
             num: Token::Num(20),
         }));
-        let lhs = Box::new(AstNode::Exp(AstBinaryExp { lhs, op, rhs }));
-
-        // make expected ast
         let op = AstOp {
             op: Token::Op(String::from("*")),
         };
         let rhs = Box::new(AstNode::Num(AstNum {
             num: Token::Num(30),
         }));
+        let rhs = Box::new(AstNode::Exp(AstBinaryExp { lhs, op, rhs }));
+
+        // make expected lhs
+        let lhs = Box::new(AstNode::Num(AstNum {
+            num: Token::Num(10),
+        }));
+        // make expected operator
+        let op = AstOp {
+            op: Token::Op(String::from("+")),
+        };
+
+        // make expected ast
         let expect = Ast {
             ast: AstNode::Exp(AstBinaryExp { lhs, op, rhs }),
         };

@@ -1,6 +1,7 @@
 use crate::lexer::Token;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
+use inkwell::values::IntValue;
 use log::debug;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -13,19 +14,26 @@ impl AstBinaryExp {
     fn get_op_string(&self) -> String {
         self.op.get_op()
     }
-    fn get_lhs_num(&self) -> u64 {
+    fn get_lhs_num(&self, context: &Context, builder: &Builder) -> IntValue {
         let node = *self.lhs.clone();
         match node {
-            AstNode::Num(ast_num) => ast_num.get_num(),
-            _ => panic!("Not implemented."),
+            AstNode::Exp(ast_exp) => ast_exp.emit(context, builder),
+            AstNode::Num(ast_num) => ast_num.emit(context, builder),
         }
     }
-    fn get_rhs_num(&self) -> u64 {
+    fn get_rhs_num(&self, context: &Context, builder: &Builder) -> IntValue {
         let node = *self.rhs.clone();
         match node {
-            AstNode::Num(ast_num) => ast_num.get_num(),
-            _ => panic!("Not implemented."),
+            AstNode::Exp(ast_exp) => ast_exp.emit(context, builder),
+            AstNode::Num(ast_num) => ast_num.emit(context, builder),
         }
+    }
+    fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
+        let lhs_num = self.get_lhs_num(context, builder);
+        let rhs_num = self.get_rhs_num(context, builder);
+
+        // TODO: add exeption for the other opertors.
+        builder.build_int_add(lhs_num, rhs_num, "sum")
     }
 }
 
@@ -39,6 +47,9 @@ impl AstNum {
             Token::Num(n) => n,
             _ => panic!("expect num token"),
         }
+    }
+    fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
+        context.i32_type().const_int(self.num.get_num(), false)
     }
 }
 
@@ -62,25 +73,11 @@ pub enum AstNode {
 }
 impl AstNode {
     pub fn emit(&self, context: &Context, builder: &Builder) {
-        match self {
-            AstNode::Exp(ast_exp) => {
-                let op = ast_exp.get_op_string();
-                if op == String::from("+") {
-                    let i32_type = context.i32_type();
-                    let const_lhs_num = i32_type.const_int(ast_exp.get_lhs_num(), false);
-                    let const_rhs_num = i32_type.const_int(ast_exp.get_rhs_num(), false);
-                    let sum = builder.build_int_add(const_lhs_num, const_rhs_num, "main");
-                    builder.build_return(Some(&sum));
-                } else {
-                    panic!("Emit Error: Not implemented operator");
-                }
-            }
-            AstNode::Num(ast_num) => {
-                let num = ast_num.get_num();
-                let a = context.i32_type().const_int(num, false);
-                builder.build_return(Some(&a));
-            }
-        }
+        let ret = match self {
+            AstNode::Exp(ast_binary_exp) => ast_binary_exp.emit(context, builder),
+            AstNode::Num(ast_num) => ast_num.emit(context, builder),
+        };
+        builder.build_return(Some(&ret));
     }
 }
 

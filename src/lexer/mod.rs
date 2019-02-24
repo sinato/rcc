@@ -3,6 +3,14 @@ pub enum Token {
     Num(u64),
     Op(String),
 }
+impl Token {
+    pub fn get_num(&self) -> u64 {
+        match self.clone() {
+            Token::Num(num) => num,
+            _ => panic!("Token Error: Expcet a number token"),
+        }
+    }
+}
 
 pub fn lexer(code: String) -> Vec<Token> {
     let elements = code.split(" ").collect::<Vec<&str>>();

@@ -38,3 +38,8 @@ fn test_binary_addition() {
 fn test_binary_addition2() {
     run("5 + 17", "22");
 }
+
+#[test]
+fn test_binary_addition_multi_term() {
+    run("1 + 2 + 3 + 4", "10");
+}

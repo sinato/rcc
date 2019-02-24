@@ -16,17 +16,11 @@ impl AstBinaryExp {
     }
     fn get_lhs_num(&self, context: &Context, builder: &Builder) -> IntValue {
         let node = *self.lhs.clone();
-        match node {
-            AstNode::Exp(ast_exp) => ast_exp.emit(context, builder),
-            AstNode::Num(ast_num) => ast_num.emit(context, builder),
-        }
+        node.emit(context, builder)
     }
     fn get_rhs_num(&self, context: &Context, builder: &Builder) -> IntValue {
         let node = *self.rhs.clone();
-        match node {
-            AstNode::Exp(ast_exp) => ast_exp.emit(context, builder),
-            AstNode::Num(ast_num) => ast_num.emit(context, builder),
-        }
+        node.emit(context, builder)
     }
     fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
         let lhs_num = self.get_lhs_num(context, builder);
@@ -69,12 +63,11 @@ pub enum AstNode {
     Num(AstNum),
 }
 impl AstNode {
-    pub fn emit(&self, context: &Context, builder: &Builder) {
-        let ret = match self {
+    pub fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
+        match self {
             AstNode::Exp(ast_binary_exp) => ast_binary_exp.emit(context, builder),
             AstNode::Num(ast_num) => ast_num.emit(context, builder),
-        };
-        builder.build_return(Some(&ret));
+        }
     }
 }
 
@@ -84,7 +77,8 @@ pub struct Ast {
 }
 impl Ast {
     pub fn emit(&self, context: &Context, builder: &Builder) {
-        self.ast.emit(context, builder);
+        let ret = self.ast.emit(context, builder);
+        builder.build_return(Some(&ret));
     }
 }
 

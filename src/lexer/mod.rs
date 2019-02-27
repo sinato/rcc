@@ -61,9 +61,16 @@ impl Tokens {
     }
 }
 
-pub fn lexer(code: String) -> Tokens {
+fn strip_mock_main(code: String) -> String {
+    let v: Vec<&str> = code.split("\n}").collect();
+    let code = v[0];
+    let v: Vec<&str> = code.split("int main() {\n    ").collect();
+    v[1].to_string()
+}
+
+fn lex(code: String) -> Tokens {
     let elements = code.split(" ").collect::<Vec<&str>>();
-    println!("elements: {:?}", elements);
+    print!("elements: {:?}  ", elements);
 
     let mut tokens: Vec<Token> = Vec::new();
     for element in elements.iter() {
@@ -85,9 +92,24 @@ pub fn lexer(code: String) -> Tokens {
     Tokens { tokens }
 }
 
+pub fn lexer(code: String) -> Tokens {
+    let code = strip_mock_main(code);
+    lex(code)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::prelude::*;
+    use std::fs::File;
+
+    fn get_code(filename: &str) -> String {
+        let filename = String::from("./tests/resources/") + filename;
+        let mut f = File::open(filename).expect("file not found");
+        let mut contents = String::new();
+        f.read_to_string(&mut contents).expect("somethig went wrong reading the file");
+        contents
+    }
 
     #[test]
     fn test_lexer_add() {
@@ -95,7 +117,7 @@ mod tests {
         let expect = Tokens {
             tokens: vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20)],
         };
-        let actual = lexer(code);
+        let actual = lex(code);
         assert_eq!(actual, expect);
     }
 
@@ -105,7 +127,14 @@ mod tests {
         let expect = Tokens {
             tokens: vec![Token::Num(10), Token::Op(String::from("*")), Token::Num(20)],
         };
-        let actual = lexer(code);
+        let actual = lex(code);
         assert_eq!(actual, expect);
+    }
+
+    #[test]
+    fn test_strip_mock_main() {
+        let code = get_code("test_one_num");
+        let expect = String::from("10");
+        assert_eq!(strip_mock_main(code), expect);
     }
 }

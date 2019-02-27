@@ -1,4 +1,6 @@
 use std::process::Command;
+use std::io::prelude::*;
+use std::fs::File;
 
 fn run(input: &str, expect: &str) {
     // compile
@@ -19,47 +21,64 @@ fn run(input: &str, expect: &str) {
     assert!(status.to_string() == String::from(format!("exit code: {}", expect)));
 }
 
+fn get_code(filename: &str) -> String {
+    let filename = String::from("./tests/resources/") + filename;
+    let mut f = File::open(filename).expect("file not found");
+    let mut contents = String::new();
+    f.read_to_string(&mut contents).expect("somethig went wrong reading the file");
+    contents
+}
+
 #[test]
 fn test_one_num() {
-    run("10", "10");
+    let code = get_code("test_one_num");
+    run(&code, "10");
 }
 
 #[test]
 fn test_one_num2() {
-    run("22", "22");
+    let code = get_code("test_one_num2");
+    run(&code, "22");
 }
 
 #[test]
 fn test_binary_addition() {
-    run("10 + 20", "30");
+    let code = get_code("test_binary_addition");
+    run(&code, "30");
 }
 
 #[test]
 fn test_binary_addition2() {
-    run("5 + 17", "22");
+    let code = get_code("test_binary_addition2");
+    run(&code, "22");
 }
 
 #[test]
 fn test_binary_addition_multi_term() {
-    run("1 + 2 + 3 + 4", "10");
+    let code = get_code("test_binary_addition_multi_term");
+    run(&code, "10");
 }
 
 #[test]
 fn test_prioritize_expression() {
-    run("1 + 2 * 3", "7");
+    let code = get_code("test_prioritize_expression");
+    run(&code, "7");
 }
 
 #[test]
 fn test_prioritize_expression2() {
-    run("1 + 2 * 3 * 4", "25");
+    let code = get_code("test_prioritize_expression2");
+    run(&code, "25");
 }
 
 #[test]
 fn test_prioritize_expression3() {
-    run("1 * 2 + 3 * 4", "14");
+    let code = get_code("test_prioritize_expression3");
+    run(&code, "14");
 }
 
 #[test]
 fn test_prioritize_expression4() {
-    run("2 + 3 * 4", "14");
+    let code = get_code("test_prioritize_expression4");
+    run(&code, "14");
 }

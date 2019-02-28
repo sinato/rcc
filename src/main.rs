@@ -38,6 +38,5 @@ fn main() {
         process::exit(1);
     }
     let code = args[1].to_string();
-    println!("code: {}", code);
     compiler(code);
 }

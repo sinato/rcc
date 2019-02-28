@@ -82,3 +82,9 @@ fn test_prioritize_expression4() {
     let code = get_code("test_prioritize_expression4");
     run(&code, "14");
 }
+
+#[test]
+fn test_multi_expression() {
+    let code = get_code("test_multi_expression");
+    run(&code, "10");
+}

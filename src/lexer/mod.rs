@@ -61,11 +61,12 @@ impl Tokens {
     }
 }
 
-fn strip_mock_main(code: String) -> String {
-    let v: Vec<&str> = code.split("\n}").collect();
-    let code = v[0];
-    let v: Vec<&str> = code.split("int main() {\n    ").collect();
-    v[1].to_string()
+fn strip_mock_main(code: String) -> Vec<String> {
+    let code = code.trim_start_matches("int main() {\n");
+    let code = code.trim_end_matches("\n}\n");
+    let codes: Vec<&str> = code.split(";").collect();
+    let codes: Vec<String> = codes.into_iter().map(|s| s.trim_start().to_string()).collect();
+    codes
 }
 
 fn lex(code: String) -> Tokens {
@@ -93,8 +94,9 @@ fn lex(code: String) -> Tokens {
 }
 
 pub fn lexer(code: String) -> Tokens {
-    let code = strip_mock_main(code);
-    lex(code)
+    let mut codes = strip_mock_main(code);
+    println!("codes: {:?}", codes);
+    lex(codes.pop().unwrap())
 }
 
 #[cfg(test)]
@@ -134,7 +136,7 @@ mod tests {
     #[test]
     fn test_strip_mock_main() {
         let code = get_code("test_one_num");
-        let expect = String::from("10");
+        let expect = vec![String::from("10")];
         assert_eq!(strip_mock_main(code), expect);
     }
 }

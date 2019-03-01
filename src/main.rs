@@ -1,5 +1,6 @@
 extern crate env_logger;
 extern crate inkwell;
+extern crate regex;
 extern crate log;
 
 use inkwell::context::Context;

@@ -1,9 +1,12 @@
 use std::collections::HashMap;
+use regex::Regex;
+use log::debug;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Num(u64),
     Op(String),
+    Semi,
 }
 impl Token {
     pub fn get_num(&self) -> u64 {
@@ -66,42 +69,60 @@ fn strip_mock_main(code: String) -> String {
     code.trim_end_matches("\n}\n").to_string()
 }
 
-// split a codes to some expressions by ";"
-fn lex_expression(code: String) -> Vec<String> {
-    let codes: Vec<&str> = code.split(";").collect();
-    let codes: Vec<String> = codes.into_iter().map(|s| s.trim_start().to_string()).collect();
-    codes
+fn lex(code: String) -> Tokens {
+    tokenize(code)
 }
 
-fn lex(code: String) -> Tokens {
-    let elements = code.split(" ").collect::<Vec<&str>>();
-    print!("elements: {:?}  ", elements);
+fn tokenize(code: String) -> Tokens {
+    let token_patterns = vec![
+        ("NUM", r"\d+(\.\d)*"),
+        ("OP", r"[+*]"),
+        ("SEMI", r";"),
+    ];
+    let re = make_regex(&token_patterns);
+    let names = get_names(&token_patterns);
+    let re = Regex::new(&re).expect("something went wrong making the regex");
 
     let mut tokens: Vec<Token> = Vec::new();
-    for element in elements.iter() {
-        let first_char = element
-            .chars()
-            .nth(0)
-            .expect("Lexing error: illigal input.");
-        if first_char.is_digit(10) {
-            let num = element
-                .parse::<u64>()
-                .expect(&format!("Expect a number, but got {}", element));
-            tokens.push(Token::Num(num));
-        } else if first_char == '+' || first_char == '*' {
-            tokens.push(Token::Op(element.to_string()));
-        } else {
-            panic!(format!("This token is not implemented: {:?}", element));
+    for caps in re.captures_iter(&code) {
+        debug!("caps:  {:?}", caps);
+        let mut typ = String::from("nil");
+        let val = String::from(&caps[0]);
+        for name in &names {
+            if caps.name(name).is_some() {
+                typ = name.to_string();
+            }
         }
+        match typ.as_ref() {
+            "NUM" => tokens.push(Token::Num(val.parse::<u64>().expect("something went wrong parsing a number"))),
+            "OP" => tokens.push(Token::Op(val)),
+            "SEMI" => tokens.push(Token::Semi),
+            _ => panic!("This is not an expected panic"),
+        }
+        debug!("tokens:  {:?}", tokens);
     }
     Tokens { tokens }
 }
 
+fn make_regex(token_patterns: &Vec<(&str, &str)>) -> String {
+    token_patterns
+        .into_iter()
+        .map(|pattern| format!("(?P<{}>{})", pattern.0, pattern.1))
+        .collect::<Vec<String>>()
+        .join("|")
+}
+
+fn get_names<'a, 'b>(token_patterns: &Vec<(&'a str, &'b str)>) -> Vec<&'a str> {
+    token_patterns
+        .into_iter()
+        .map(|pattern| pattern.0)
+        .collect()
+}
+
+
 pub fn lexer(code: String) -> Tokens {
     let code = strip_mock_main(code);
-    let mut codes = lex_expression(code);
-    println!("codes: {:?}", codes);
-    lex(codes.pop().unwrap())
+    lex(code)
 }
 
 #[cfg(test)]
@@ -149,7 +170,7 @@ mod tests {
     #[test]
     fn test_lex_expression() {
         let code = strip_mock_main(String::from("      10 + 20;\n    100"));
-        let expect = vec![String::from("10 + 20"), String::from("100")];
-        assert_eq!(lex_expression(code), expect);
+        let expect = Tokens{ tokens:  vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20), Token::Semi, Token::Num(100)] };
+        assert_eq!(lex(code), expect);
     }
 }

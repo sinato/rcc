@@ -61,9 +61,13 @@ impl Tokens {
     }
 }
 
-fn strip_mock_main(code: String) -> Vec<String> {
+fn strip_mock_main(code: String) -> String {
     let code = code.trim_start_matches("int main() {\n");
-    let code = code.trim_end_matches("\n}\n");
+    code.trim_end_matches("\n}\n").to_string()
+}
+
+// split a codes to some expressions by ";"
+fn lex_expression(code: String) -> Vec<String> {
     let codes: Vec<&str> = code.split(";").collect();
     let codes: Vec<String> = codes.into_iter().map(|s| s.trim_start().to_string()).collect();
     codes
@@ -94,7 +98,8 @@ fn lex(code: String) -> Tokens {
 }
 
 pub fn lexer(code: String) -> Tokens {
-    let mut codes = strip_mock_main(code);
+    let code = strip_mock_main(code);
+    let mut codes = lex_expression(code);
     println!("codes: {:?}", codes);
     lex(codes.pop().unwrap())
 }
@@ -136,7 +141,15 @@ mod tests {
     #[test]
     fn test_strip_mock_main() {
         let code = get_code("test_one_num");
-        let expect = vec![String::from("10")];
-        assert_eq!(strip_mock_main(code), expect);
+        let code = strip_mock_main(code);
+        let expect = String::from("    10");
+        assert_eq!(code, expect);
+    }
+
+    #[test]
+    fn test_lex_expression() {
+        let code = strip_mock_main(String::from("      10 + 20;\n    100"));
+        let expect = vec![String::from("10 + 20"), String::from("100")];
+        assert_eq!(lex_expression(code), expect);
     }
 }

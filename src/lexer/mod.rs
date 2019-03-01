@@ -62,6 +62,9 @@ impl Tokens {
     pub fn reverse(&mut self) {
         self.tokens.reverse()
     }
+    pub fn get_tokens(self) -> Vec<Token> {
+        self.tokens
+    }
 }
 
 fn strip_mock_main(code: String) -> String {
@@ -163,7 +166,7 @@ mod tests {
     fn test_strip_mock_main() {
         let code = get_code("test_one_num");
         let code = strip_mock_main(code);
-        let expect = String::from("    10");
+        let expect = String::from("    10;");
         assert_eq!(code, expect);
     }
 

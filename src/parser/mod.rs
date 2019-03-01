@@ -150,7 +150,26 @@ fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (A
     (lhs, tokens)
 }
 
-pub fn parser(mut tokens: Tokens) -> Ast {
+fn parse_statement(tokens: Tokens) -> Tokens {
+    let tokens: Vec<Token> = tokens.get_tokens();
+    let mut parsed_tokens: Vec<Vec<Token>> = Vec::new();
+    let mut tmp_tokens: Vec<Token> = Vec::new();
+    for token in tokens {
+        match token {
+            Token::Semi => {
+                let t = tmp_tokens.clone();
+                parsed_tokens.push(t);
+                tmp_tokens.clear();
+            },
+            _ => tmp_tokens.push(token),
+        }
+    }
+    // TODO: Implement a pattern when the last Semi was not found.
+    Tokens { tokens: parsed_tokens.pop().expect("Expect at least a token.") }
+}
+
+pub fn parser(tokens: Tokens) -> Ast {
+    let mut tokens = parse_statement(tokens);
     tokens.reverse();
     let token = tokens.pop();
     let mut lhs = match token {
@@ -172,13 +191,23 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_parse_statement() {
+        let tokens = vec![Token::Num(77)];
+        let expect = Tokens { tokens };
+
+        let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10), Token::Semi, Token::Num(77), Token::Semi];
+        let tokens  = Tokens { tokens };
+        assert_eq!(parse_statement(tokens), expect);
+    }
+
+    #[test]
     fn test_parser_num() {
         let expect = Ast {
             ast: AstNode::Num(AstNum {
                 num: Token::Num(2434),
             }),
         };
-        let tokens = vec![Token::Num(2434)];
+        let tokens = vec![Token::Num(2434), Token::Semi];
         let tokens = Tokens { tokens };
         let actual = parser(tokens);
         assert_eq!(actual, expect);
@@ -187,7 +216,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_parser_num_illegal() {
-        let tokens = vec![Token::Op(String::from("+"))];
+        let tokens = vec![Token::Op(String::from("+")), Token::Semi];
         let tokens = Tokens { tokens };
         parser(tokens);
     }
@@ -195,7 +224,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_parser_illegal_tokens() {
-        let tokens = vec![Token::Num(2434), Token::Op(String::from("+"))];
+        let tokens = vec![Token::Num(2434), Token::Op(String::from("+")), Token::Semi];
         let tokens = Tokens { tokens };
         parser(tokens);
     }
@@ -203,7 +232,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_parser_exp_illegal_tokens() {
-        let tokens = vec![Token::Num(2434), Token::Num(2434), Token::Num(2434)];
+        let tokens = vec![Token::Num(2434), Token::Num(2434), Token::Num(2434), Token::Semi];
         let tokens = Tokens { tokens };
         parser(tokens);
     }
@@ -215,6 +244,7 @@ mod tests {
             Token::Num(2434),
             Token::Op(String::from("+")),
             Token::Op(String::from("+")),
+            Token::Semi,
         ];
         let tokens = Tokens { tokens };
         parser(tokens);
@@ -227,6 +257,7 @@ mod tests {
             Token::Num(2434),
             Token::Op(String::from("-")),
             Token::Num(2434),
+            Token::Semi,
         ];
         let tokens = Tokens { tokens };
         parser(tokens);
@@ -246,7 +277,7 @@ mod tests {
         let expect = Ast {
             ast: AstNode::Exp(AstBinaryExp { lhs, op, rhs }),
         };
-        let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20)];
+        let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20), Token::Semi];
         let tokens = Tokens { tokens };
         let actual = parser(tokens);
         assert_eq!(actual, expect);
@@ -285,6 +316,7 @@ mod tests {
             Token::Num(20),
             Token::Op(String::from("*")),
             Token::Num(30),
+            Token::Semi,
         ];
         let tokens = Tokens { tokens };
         let actual = parser(tokens);

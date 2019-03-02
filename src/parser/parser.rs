@@ -2,7 +2,6 @@ use crate::lexer::token::{Token, Tokens};
 use crate::parser::ast::*;
 use log::debug;
 
-
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
     let precedence: Option<u32> = match tokens.clone().pop_op() {
         Some(operator) => Some(tokens.get_precedence(operator)),
@@ -52,15 +51,25 @@ fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (A
     (lhs, tokens)
 }
 
-fn parse_statement(tokens: Tokens) -> Tokens {
+#[derive(Debug, PartialEq, Clone)]
+struct Statements {
+    statements: Vec<Tokens>
+}
+impl Statements {
+    fn pop(&mut self) -> Option<Tokens> {
+        self.statements.pop()
+    }
+}
+
+fn parse_statement(tokens: Tokens) -> Statements {
     let tokens: Vec<Token> = tokens.get_tokens();
-    let mut parsed_tokens: Vec<Vec<Token>> = Vec::new();
+    let mut parsed_tokens: Vec<Tokens> = Vec::new();
     let mut tmp_tokens: Vec<Token> = Vec::new();
     for token in tokens {
         match token {
             Token::Semi => {
                 let t = tmp_tokens.clone();
-                parsed_tokens.push(t);
+                parsed_tokens.push(Tokens { tokens: t });
                 tmp_tokens.clear();
             },
             _ => tmp_tokens.push(token),
@@ -69,11 +78,12 @@ fn parse_statement(tokens: Tokens) -> Tokens {
     if tmp_tokens.len() != 0 {
         panic!("Parse Error: Expected the last semicolon, but not found.");
     }
-    Tokens { tokens: parsed_tokens.pop().expect("Expect at least a token.") }
+    Statements { statements: parsed_tokens }
 }
 
 pub fn parser(tokens: Tokens) -> Ast {
-    let mut tokens = parse_statement(tokens);
+    let mut statements = parse_statement(tokens);
+    let mut tokens = statements.pop().unwrap();
     tokens.reverse();
     let token = tokens.pop();
     let mut lhs = match token {
@@ -96,8 +106,10 @@ mod tests {
 
     #[test]
     fn test_parse_statement() {
-        let tokens = vec![Token::Num(77)];
-        let expect = Tokens { tokens };
+        let tokens1 = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10)];
+        let tokens2 = vec![Token::Num(77)];
+        let tokens = vec![Tokens { tokens: tokens1 }, Tokens { tokens: tokens2 }];
+        let expect = Statements { statements: tokens };
 
         let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10), Token::Semi, Token::Num(77), Token::Semi];
         let tokens  = Tokens { tokens };

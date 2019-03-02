@@ -13,7 +13,6 @@ fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
         None => false,
     }
 }
-
 fn condition2_is_ok(tokens: &Tokens, given_precedence: u32) -> bool {
     let precedence: Option<u32> = match tokens.clone().pop_op() {
         Some(operator) => Some(tokens.get_precedence(operator)),
@@ -67,7 +66,9 @@ fn parse_statement(tokens: Tokens) -> Tokens {
             _ => tmp_tokens.push(token),
         }
     }
-    // TODO: Implement a pattern when the last Semi was not found.
+    if tmp_tokens.len() != 0 {
+        panic!("Parse Error: Expected the last semicolon, but not found.");
+    }
     Tokens { tokens: parsed_tokens.pop().expect("Expect at least a token.") }
 }
 
@@ -85,9 +86,9 @@ pub fn parser(tokens: Tokens) -> Ast {
     let (returned_lhs, _returned_tokens) = parse_expression(lhs, 0, tokens);
     lhs = returned_lhs;
     debug!("AST:\n {}", lhs);
-
     Ast { ast: lhs }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -101,6 +102,14 @@ mod tests {
         let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10), Token::Semi, Token::Num(77), Token::Semi];
         let tokens  = Tokens { tokens };
         assert_eq!(parse_statement(tokens), expect);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_parse_statement_illegal() {
+        let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10)];
+        let tokens  = Tokens { tokens };
+        parse_statement(tokens);
     }
 
     #[test]

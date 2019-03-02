@@ -7,7 +7,7 @@ use inkwell::context::Context;
 use std::{env, path, process};
 
 mod lexer;
-use lexer::lexer::lexer;
+use lexer::lexer::Lexer;
 mod parser;
 use parser::parser::parser;
 
@@ -23,7 +23,8 @@ fn compiler(code: String) {
     builder.position_at_end(&basic_block);
 
     // define main function
-    let tokens = lexer(code);
+    let lexer = Lexer::new();
+    let tokens = lexer.lex(code);
     let ast = parser(tokens);
     ast.emit(&context, &builder);
 

@@ -2,46 +2,53 @@ use regex::Regex;
 use log::debug;
 use crate::lexer::token::*;
 
-fn strip_mock_main(code: String) -> String {
-    let code = code.trim_start_matches("int main() {\n");
-    code.trim_end_matches("\n}\n").to_string()
+pub struct Lexer {
+    re: Regex,
+    names: Vec<&'static str>,
 }
-
-fn lex(code: String) -> Tokens {
-    tokenize(code)
-}
-
-fn tokenize(code: String) -> Tokens {
-    let token_patterns = vec![
-        ("NUM", r"\d+(\.\d)*"),
-        ("OP", r"[+*]"),
-        ("SEMI", r";"),
-    ];
-    let re = make_regex(&token_patterns);
-    let names = get_names(&token_patterns);
-    let re = Regex::new(&re).expect("something went wrong making the regex");
-
-    let mut tokens: Vec<Token> = Vec::new();
-    for caps in re.captures_iter(&code) {
-        debug!("caps:  {:?}", caps);
-        let mut typ = String::from("nil");
-        let val = String::from(&caps[0]);
-        for name in &names {
-            if caps.name(name).is_some() {
-                typ = name.to_string();
-            }
-        }
-        match typ.as_ref() {
-            "NUM" => tokens.push(Token::Num(val.parse::<u64>().expect("something went wrong parsing a number"))),
-            "OP" => tokens.push(Token::Op(val)),
-            "SEMI" => tokens.push(Token::Semi),
-            _ => panic!("This is not an expected panic"),
-        }
-        debug!("tokens:  {:?}", tokens);
+impl Lexer {
+    // static constructor
+    pub fn new() -> Lexer {
+        let token_patterns = vec![
+            ("NUM", r"\d+(\.\d)*"),
+            ("OP", r"[+*]"),
+            ("SEMI", r";"),
+        ];
+        let re = make_regex(&token_patterns);
+        let names = get_names(&token_patterns);
+        let re = Regex::new(&re).expect("something went wrong making the regex");
+        Lexer { re, names }
     }
-    Tokens { tokens }
+    pub fn lex(&self, code: String) -> Tokens {
+        let code = self.strip_mock_main(code);
+        self.tokenize(code)
+    }
+    fn strip_mock_main(&self, code: String) -> String {
+        let code = code.trim_start_matches("int main() {\n");
+        code.trim_end_matches("\n}\n").to_string()
+    }
+    fn tokenize(&self, code: String) -> Tokens {
+        let mut tokens: Vec<Token> = Vec::new();
+        for caps in self.re.captures_iter(&code) {
+            debug!("caps:  {:?}", caps);
+            let mut typ = String::from("nil");
+            let val = String::from(&caps[0]);
+            for name in &self.names {
+                if caps.name(name).is_some() {
+                    typ = name.to_string();
+                }
+            }
+            match typ.as_ref() {
+                "NUM" => tokens.push(Token::Num(val.parse::<u64>().expect("something went wrong parsing a number"))),
+                "OP" => tokens.push(Token::Op(val)),
+                "SEMI" => tokens.push(Token::Semi),
+                _ => panic!("This is not an expected panic"),
+            }
+            debug!("tokens:  {:?}", tokens);
+        }
+        Tokens { tokens }
+    }
 }
-
 fn make_regex(token_patterns: &Vec<(&str, &str)>) -> String {
     token_patterns
         .into_iter()
@@ -57,17 +64,15 @@ fn get_names<'a, 'b>(token_patterns: &Vec<(&'a str, &'b str)>) -> Vec<&'a str> {
         .collect()
 }
 
-
-pub fn lexer(code: String) -> Tokens {
-    let code = strip_mock_main(code);
-    lex(code)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::io::prelude::*;
     use std::fs::File;
+
+    fn get_lexer() -> Lexer {
+        Lexer::new()
+    }
 
     fn get_code(filename: &str) -> String {
         let filename = String::from("./tests/resources/") + filename;
@@ -79,36 +84,40 @@ mod tests {
 
     #[test]
     fn test_lexer_add() {
+        let lexer = get_lexer();
         let code = String::from("10 + 20");
         let expect = Tokens {
             tokens: vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20)],
         };
-        let actual = lex(code);
+        let actual = lexer.lex(code);
         assert_eq!(actual, expect);
     }
 
     #[test]
     fn test_lexer_mul() {
+        let lexer = get_lexer();
         let code = String::from("10 * 20");
         let expect = Tokens {
             tokens: vec![Token::Num(10), Token::Op(String::from("*")), Token::Num(20)],
         };
-        let actual = lex(code);
+        let actual = lexer.lex(code);
         assert_eq!(actual, expect);
     }
 
     #[test]
     fn test_strip_mock_main() {
+        let lexer = get_lexer();
         let code = get_code("test_one_num");
-        let code = strip_mock_main(code);
+        let code = lexer.strip_mock_main(code);
         let expect = String::from("    10;");
         assert_eq!(code, expect);
     }
 
     #[test]
     fn test_lex_expression() {
-        let code = strip_mock_main(String::from("      10 + 20;\n    100"));
+        let lexer = get_lexer();
+        let code = String::from("      10 + 20;\n    100");
         let expect = Tokens{ tokens:  vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20), Token::Semi, Token::Num(100)] };
-        assert_eq!(lex(code), expect);
+        assert_eq!(lexer.lex(code), expect);
     }
 }

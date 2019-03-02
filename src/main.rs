@@ -9,7 +9,7 @@ use std::{env, path, process};
 mod lexer;
 use lexer::lexer::lexer;
 mod parser;
-use parser::parser;
+use parser::parser::parser;
 
 fn compiler(code: String) {
     // initialize

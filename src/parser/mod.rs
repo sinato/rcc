@@ -1,4 +1,4 @@
-use crate::lexer::{Token, Tokens};
+use crate::lexer::token::{Token, Tokens};
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::values::IntValue;

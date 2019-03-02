@@ -7,7 +7,7 @@ use inkwell::context::Context;
 use std::{env, path, process};
 
 mod lexer;
-use lexer::lexer;
+use lexer::lexer::lexer;
 mod parser;
 use parser::parser;
 

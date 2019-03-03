@@ -88,3 +88,9 @@ fn test_multi_expression() {
     let code = get_code("test_multi_expression");
     run(&code, "10");
 }
+
+#[test]
+fn test_variable() {
+    let code = get_code("test_variable");
+    run(&code, "24");
+}

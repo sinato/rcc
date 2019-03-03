@@ -25,8 +25,8 @@ fn compiler(code: String) {
     // define main function
     let lexer = Lexer::new();
     let tokens = lexer.lex(code);
-    let ast = parser(tokens);
-    ast.emit(&context, &builder);
+    let statements = parser(tokens);
+    statements.emit(&context, &builder);
 
     // print_to_file
     let _ = module.print_to_file(path::Path::new("compiled.ll"));

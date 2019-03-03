@@ -5,6 +5,28 @@ use inkwell::values::IntValue;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct Statements {
+    pub asts: Vec<Ast>
+}
+impl Statements {
+    pub fn new(asts: Vec<Ast>) -> Statements {
+        Statements { asts }
+    }
+    pub fn pop(&mut self) -> Option<Ast> {
+        self.asts.pop()
+    }
+    pub fn emit(&self, context: &Context, builder: &Builder) {
+
+        let ret = self.asts.iter().map(|ast| ast.emit(context, builder)).last();
+        match ret {
+            Some(ret) => builder.build_return(Some(&ret)),
+            None => panic!("Emit Error: Expect at least an ast."),
+        };
+    }
+}
+
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct AstBinaryExp {
     pub op: AstOp,
     pub lhs: Box<AstNode>,
@@ -93,8 +115,7 @@ pub struct Ast {
     pub ast: AstNode,
 }
 impl Ast {
-    pub fn emit(&self, context: &Context, builder: &Builder) {
-        let ret = self.ast.emit(context, builder);
-        builder.build_return(Some(&ret));
+    pub fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
+        self.ast.emit(context, builder)
     }
 }

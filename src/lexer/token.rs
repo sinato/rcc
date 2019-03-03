@@ -20,6 +20,12 @@ impl Token {
             _ => panic!("Token Error: Expcet an operator token"),
         }
     }
+    pub fn get_ide(&self) -> String {
+        match self.clone() {
+            Token::Ide(ide) => ide,
+            _ => panic!("Token Error: Expcet an identifier token"),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -61,6 +67,15 @@ impl Tokens {
                 Token::Ide(identifier) => Some(identifier),
                 _ => panic!("Expect an identifier token"),
             },
+            None => None,
+        }
+    }
+    pub fn pop_fin(&mut self) -> Option<Token> {
+        match self.tokens.pop() {
+            Some(token) => match token {
+                Token::Ide(_) | Token::Num(_) => Some(token),
+                _ => panic!("Expect an identifier or number token"),
+            }
             None => None,
         }
     }

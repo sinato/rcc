@@ -3,40 +3,31 @@ extern crate inkwell;
 extern crate regex;
 extern crate log;
 
-use inkwell::context::Context;
-use std::{env, path, process};
+use std::{env, process};
 
 mod lexer;
 use lexer::lexer::Lexer;
 mod parser;
 use parser::parser::parser;
+use parser::ast::Emitter;
 
 /// BNF:
 /// PROGRAM    := (STATEMENT)+
 /// STATEMENT  := NODE
-/// NODE       := EXPRESSION|BINDING|NUM;
-/// EXPRESSION := NUM (OP NUM)+
+/// NODE       := EXPRESSION|BINDING|FIN;
+/// EXPRESSION := FIN (OP FIN)+
 /// BINDING    := IDEN = NODE
+/// FIN        := NUM|IDEN
+/// IDEN       := [\s]+
 /// NUM        := [0-9]+
 fn compiler(code: String) {
-    // initialize
-    let context = Context::create();
-    let module = context.create_module("my_module");
-    let builder = context.create_builder();
-
-    // generate function prototype
-    let function = module.add_function("main", context.i32_type().fn_type(&[], false), None);
-    let basic_block = context.append_basic_block(&function, "entry");
-    builder.position_at_end(&basic_block);
-
-    // define main function
     let lexer = Lexer::new();
     let tokens = lexer.lex(code);
     let statements = parser(tokens);
-    statements.emit(&context, &builder);
 
-    // print_to_file
-    let _ = module.print_to_file(path::Path::new("compiled.ll"));
+    let mut emitter = Emitter::new();
+    emitter.emit(statements);
+    emitter.print_to_file("compiled.ll");
 }
 
 fn main() {

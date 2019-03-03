@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{Ast, AstNode, AstOp, AstIde, AstBinding, AstBinaryExp, AstNum, Statements};
+use crate::parser::ast::{Ast, AstNode, AstOp, AstIde, AstBinding, AstBinaryExp, AstNum, Statements, AstFinEnum, AstFin};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -32,11 +32,15 @@ fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (A
             None => panic!("Parse Error: Expect a number token"),
         };
         let precedence = tokens.get_precedence(op.get_op());
-        let rhs: Token = match tokens.pop_num() {
-            Some(num) => Token::Num(num),
+        let rhs: Token = match tokens.pop_fin() {
+            Some(token) => token,
             None => panic!("Parse Error: Expect a number token"),
         };
-        let mut rhs = AstNode::Num(AstNum { num: rhs });
+        let mut rhs = match rhs {
+            Token::Num(num) => AstNode::Fin(AstFin::new_from_num_token(Token::Num(num))),
+            Token::Ide(ide) => AstNode::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
+            _ => panic!("Unexpected")
+        };
         while condition2_is_ok(&tokens, precedence) {
             let (ret_rhs, ret_tokens) = parse_expression(rhs, precedence, tokens);
             rhs = ret_rhs;
@@ -52,9 +56,13 @@ fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (A
 }
 
 fn parse_expression_entry(mut tokens: Tokens) -> AstNode {
-    let token = tokens.pop_num();
+    let token = tokens.pop_fin();
     let lhs = match token {
-        Some(num) => AstNode::Num(AstNum { num: Token::Num(num) }),
+        Some(token) => match token {
+            Token::Num(num) => AstNode::Fin(AstFin::new_from_num_token(Token::Num(num))),
+            Token::Ide(ide) => AstNode::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
+            _ => panic!("Unexpected")
+        }
         None => panic!("Parse Error: Expect at least one token."),
     };
     let (lhs, _returned_tokens) = parse_expression(lhs, 0, tokens);
@@ -126,6 +134,10 @@ pub fn parser(tokens: Tokens) -> Statements {
 mod tests {
     use super::*;
 
+    fn get_astnode_num(num: u64) -> AstNode {
+        AstNode::Fin(AstFin { fin: AstFinEnum::Num(AstNum { num: Token::Num(num) })})
+    }
+
     #[test]
     fn test_get_statements() {
         let tokens1 = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10)];
@@ -148,9 +160,7 @@ mod tests {
     #[test]
     fn test_parser_num() {
         let expect = Ast {
-            ast: AstNode::Num(AstNum {
-                num: Token::Num(2434),
-            }),
+            ast: get_astnode_num(2434)
         };
         let tokens = vec![Token::Num(2434)];
         let tokens = Tokens { tokens };
@@ -208,15 +218,11 @@ mod tests {
 
     #[test]
     fn test_parser_exp() {
-        let lhs = Box::new(AstNode::Num(AstNum {
-            num: Token::Num(10),
-        }));
+        let lhs = Box::new(get_astnode_num(10));
         let op = AstOp {
             op: Token::Op(String::from("+")),
         };
-        let rhs = Box::new(AstNode::Num(AstNum {
-            num: Token::Num(20),
-        }));
+        let rhs = Box::new(get_astnode_num(20));
         let expect = Ast {
             ast: AstNode::Exp(AstBinaryExp { lhs, op, rhs }),
         };
@@ -229,21 +235,15 @@ mod tests {
     #[test]
     fn test_parser_exp_three_terms() {
         // make expected rhs
-        let lhs = Box::new(AstNode::Num(AstNum {
-            num: Token::Num(20),
-        }));
+        let lhs = Box::new(get_astnode_num(20));
         let op = AstOp {
             op: Token::Op(String::from("*")),
         };
-        let rhs = Box::new(AstNode::Num(AstNum {
-            num: Token::Num(30),
-        }));
+        let rhs = Box::new(get_astnode_num(30));
         let rhs = Box::new(AstNode::Exp(AstBinaryExp { lhs, op, rhs }));
 
         // make expected lhs
-        let lhs = Box::new(AstNode::Num(AstNum {
-            num: Token::Num(10),
-        }));
+        let lhs = Box::new(get_astnode_num(10));
         // make expected operator
         let op = AstOp {
             op: Token::Op(String::from("+")),

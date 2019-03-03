@@ -1,24 +1,109 @@
 use crate::lexer::token::Token;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
-use inkwell::values::IntValue;
-use std::fmt;
+use inkwell::module::Module;
+use inkwell::values::{IntValue, PointerValue};
+use std::collections::HashMap;
+use std::{fmt, path};
+
+
+pub struct Emitter {
+    context: Context,
+    builder: Builder,
+    module: Module,
+    variables: HashMap<String, PointerValue>
+}
+impl Emitter {
+    pub fn new() -> Emitter {
+        let context = Context::create();
+        let module = context.create_module("my_module");
+        let builder = context.create_builder();
+        let variables = HashMap::new();
+
+        Emitter {
+            context,
+            builder, 
+            module,
+            variables
+        }
+    }
+    pub fn print_to_file(&self, filename: &str) {
+        let _ = self.module.print_to_file(path::Path::new(filename));
+    }
+    pub fn emit(&mut self, statements: Statements) {
+        // generate function prototype
+        let function = self.module.add_function("main", self.context.i32_type().fn_type(&[], false), None);
+        let basic_block = self.context.append_basic_block(&function, "entry");
+        self.builder.position_at_end(&basic_block);
+        self.emit_statement(statements)
+    }
+    fn emit_statement(&mut self, statements: Statements) {
+        let asts = statements.asts.clone();
+        let ret = asts.into_iter().map(|ast| self.emit_ast(ast)).last();
+        match ret {
+            Some(ret) => self.builder.build_return(Some(&ret)),
+            None => panic!("Emit Error: Expect at least an ast."),
+        };
+    }
+    fn emit_ast(&mut self, ast: Ast) -> IntValue {
+        let ast_node = ast.ast;
+        self.emit_ast_node(ast_node)
+    }
+    fn emit_ast_node(&mut self, ast_node: AstNode) -> IntValue {
+        match ast_node {
+            AstNode::Exp(ast) => self.emit_ast_exp(ast),
+            AstNode::Fin(ast) => self.emit_ast_fin(ast),
+            AstNode::Bind(ast) => self.emit_ast_bind(ast),
+        }
+    }
+    fn emit_ast_exp(&mut self, ast_binary_exp: AstBinaryExp) -> IntValue {
+        let lhs_num = self.emit_ast_node(*ast_binary_exp.lhs.clone());
+        let rhs_num = self.emit_ast_node(*ast_binary_exp.rhs.clone());
+        let op = ast_binary_exp.get_op_string();
+        match op.as_ref() {
+            "+" => self.builder.build_int_add(lhs_num, rhs_num, "sum"),
+            "*" => self.builder.build_int_mul(lhs_num, rhs_num, "mul"),
+            _ => panic!("Emit Error: Not implemented operator"),
+        }
+    }
+    fn emit_ast_fin(&self, ast_fin: AstFin) -> IntValue {
+        let ast_fin_enum = ast_fin.fin;
+        match ast_fin_enum {
+            AstFinEnum::Num(ast) => self.emit_ast_num(ast),
+            AstFinEnum::Ide(ast) => self.emit_ast_ide(ast),
+        }
+    }
+    fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {
+        let identifier = ast_binding.ide.get_identifier();
+        let pointer = self.builder.build_alloca(self.context.i32_type(), &identifier);
+        let val = self.emit_ast_node(*ast_binding.val);
+
+        self.builder.build_store(pointer, val);
+        self.variables.insert(identifier, pointer);
+        val
+    }
+    fn emit_ast_num(&self, ast_num: AstNum) -> IntValue {
+        self.context.i32_type().const_int(ast_num.num.get_num(), false)
+    }
+    fn emit_ast_ide(&self, ast_ide: AstIde) -> IntValue {
+        let allocation = self.variables.get(&ast_ide.get_identifier());
+        match allocation {
+            Some(pointer) => self.builder.build_load(*pointer, &ast_ide.ide.get_ide()).into_int_value(),
+            None => panic!("Emit Error: Undeclared variable."),
+        }
+    }
+}
+
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Statements {
-    pub asts: Vec<Ast>
+    pub asts: Vec<Ast>,
+    variables: HashMap<String, PointerValue>,
 }
 impl Statements {
     pub fn new(asts: Vec<Ast>) -> Statements {
-        Statements { asts }
-    }
-    pub fn emit(&self, context: &Context, builder: &Builder) {
-
-        let ret = self.asts.iter().map(|ast| ast.emit(context, builder)).last();
-        match ret {
-            Some(ret) => builder.build_return(Some(&ret)),
-            None => panic!("Emit Error: Expect at least an ast."),
-        };
+        let variables = HashMap::new();
+        Statements { asts, variables }
     }
 }
 
@@ -26,19 +111,6 @@ impl Statements {
 pub struct AstBinding {
     pub ide: AstIde,
     pub val: Box<AstNode>,
-}
-impl AstBinding {
-    fn get_val(&self, context: &Context, builder: &Builder) -> IntValue {
-        let node = *self.val.clone();
-        node.emit(context, builder)
-    }
-    fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
-        let identifier = self.ide.get_identifier();
-        let pointer = builder.build_alloca(context.i32_type(), &identifier);
-        let val = self.get_val(context, builder);
-        builder.build_store(pointer, val);
-        val
-    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -50,24 +122,6 @@ pub struct AstBinaryExp {
 impl AstBinaryExp {
     fn get_op_string(&self) -> String {
         self.op.get_op()
-    }
-    fn get_lhs_num(&self, context: &Context, builder: &Builder) -> IntValue {
-        let node = *self.lhs.clone();
-        node.emit(context, builder)
-    }
-    fn get_rhs_num(&self, context: &Context, builder: &Builder) -> IntValue {
-        let node = *self.rhs.clone();
-        node.emit(context, builder)
-    }
-    fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
-        let lhs_num = self.get_lhs_num(context, builder);
-        let rhs_num = self.get_rhs_num(context, builder);
-        let op = self.get_op_string();
-        match op.as_ref() {
-            "+" => builder.build_int_add(lhs_num, rhs_num, "sum"),
-            "*" => builder.build_int_mul(lhs_num, rhs_num, "mul"),
-            _ => panic!("Emit Error: Not implemented operator"),
-        }
     }
 }
 impl fmt::Display for AstBinaryExp {
@@ -81,13 +135,26 @@ impl fmt::Display for AstBinaryExp {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct AstFin {
+    pub fin: AstFinEnum,
+}
+impl AstFin {
+    pub fn new_from_num_token(num: Token) -> AstFin {
+        AstFin { fin: AstFinEnum::Num(AstNum { num })}
+    }
+    pub fn new_from_ide_token(ide: Token) -> AstFin {
+        AstFin { fin: AstFinEnum::Ide(AstIde { ide })}
+    }
+}
+#[derive(Debug, PartialEq, Clone)]
+pub enum AstFinEnum {
+    Num(AstNum),
+    Ide(AstIde),
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct AstNum {
     pub num: Token,
-}
-impl AstNum {
-    fn emit(&self, context: &Context, _builder: &Builder) -> IntValue {
-        context.i32_type().const_int(self.num.get_num(), false)
-    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -119,23 +186,14 @@ impl AstIde {
 #[derive(Debug, PartialEq, Clone)]
 pub enum AstNode {
     Exp(AstBinaryExp),
-    Num(AstNum),
+    Fin(AstFin),
     Bind(AstBinding),
-}
-impl AstNode {
-    pub fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
-        match self {
-            AstNode::Exp(ast_binary_exp) => ast_binary_exp.emit(context, builder),
-            AstNode::Num(ast_num) => ast_num.emit(context, builder),
-            AstNode::Bind(ast_binding) => ast_binding.emit(context, builder),
-        }
-    }
 }
 impl fmt::Display for AstNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             AstNode::Exp(ast_binary_exp) => write!(f, "EXP: {}\n", ast_binary_exp),
-            AstNode::Num(ast_num) => write!(f, "NUM: {:?}\n", ast_num),
+            AstNode::Fin(ast) => write!(f, "FIN: {:?}\n", ast),
             AstNode::Bind(ast_binding) => write!(f, "BIND: {:?}\n", ast_binding),
         }
     }
@@ -144,9 +202,4 @@ impl fmt::Display for AstNode {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Ast {
     pub ast: AstNode,
-}
-impl Ast {
-    pub fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
-        self.ast.emit(context, builder)
-    }
 }

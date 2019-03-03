@@ -32,15 +32,13 @@ fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (A
             None => panic!("Parse Error: Expect a number token"),
         };
         let precedence = tokens.get_precedence(op.get_op());
+
         let rhs: Token = match tokens.pop_fin() {
             Some(token) => token,
             None => panic!("Parse Error: Expect a number token"),
         };
-        let mut rhs = match rhs {
-            Token::Num(num) => AstNode::Fin(AstFin::new_from_num_token(Token::Num(num))),
-            Token::Ide(ide) => AstNode::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
-            _ => panic!("Unexpected")
-        };
+        let mut rhs = AstNode::new_from_token_fin(rhs);
+
         while condition2_is_ok(&tokens, precedence) {
             let (ret_rhs, ret_tokens) = parse_expression(rhs, precedence, tokens);
             rhs = ret_rhs;
@@ -56,15 +54,13 @@ fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (A
 }
 
 fn parse_expression_entry(mut tokens: Tokens) -> AstNode {
+
     let token = tokens.pop_fin();
     let lhs = match token {
-        Some(token) => match token {
-            Token::Num(num) => AstNode::Fin(AstFin::new_from_num_token(Token::Num(num))),
-            Token::Ide(ide) => AstNode::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
-            _ => panic!("Unexpected")
-        }
+        Some(token) => AstNode::new_from_token_fin(token),
         None => panic!("Parse Error: Expect at least one token."),
     };
+
     let (lhs, _returned_tokens) = parse_expression(lhs, 0, tokens);
     lhs
 }

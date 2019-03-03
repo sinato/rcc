@@ -198,6 +198,15 @@ impl fmt::Display for AstNode {
         }
     }
 }
+impl AstNode {
+    pub fn new_from_token_fin(token: Token) -> AstNode {
+        match token {
+            Token::Num(num) => AstNode::Fin(AstFin::new_from_num_token(Token::Num(num))),
+            Token::Ide(ide) => AstNode::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
+            _ => panic!("Unexpected")
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Ast {

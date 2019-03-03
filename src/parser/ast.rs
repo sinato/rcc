@@ -1,18 +1,14 @@
 use crate::lexer::token::Token;
-use inkwell::values::PointerValue;
-use std::collections::HashMap;
 use std::fmt;
 
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Statements {
     pub asts: Vec<Ast>,
-    variables: HashMap<String, PointerValue>,
 }
 impl Statements {
     pub fn new(asts: Vec<Ast>) -> Statements {
-        let variables = HashMap::new();
-        Statements { asts, variables }
+        Statements { asts }
     }
 }
 

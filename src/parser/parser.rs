@@ -52,61 +52,39 @@ fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (A
 }
 
 fn parse_expression_entry(mut tokens: Tokens) -> AstNode {
-    let token = tokens.pop();
-    let mut lhs = match token {
-        Some(token) => match token {
-            Token::Num(_) => AstNode::Num(AstNum { num: token }),
-            _ => panic!("Parse Error: Expect a number token."),
-        },
+    let token = tokens.pop_num();
+    let lhs = match token {
+        Some(num) => AstNode::Num(AstNum { num: Token::Num(num) }),
         None => panic!("Parse Error: Expect at least one token."),
     };
-    let (returned_lhs, _returned_tokens) = parse_expression(lhs, 0, tokens);
-    lhs = returned_lhs;
+    let (lhs, _returned_tokens) = parse_expression(lhs, 0, tokens);
     lhs
 }
 
 fn parse_binding(mut tokens: Tokens) -> AstNode {
-
-    let token = tokens.pop();
+    let token = tokens.pop_ide();
     let ide = match token {
-        Some(token) => match token {
-            Token::Ide(_) => AstIde { ide: token },
-            _ => panic!("Parse Error: Expect an identifier token."),
-        },
+        Some(identifier) => AstIde { ide: Token::Ide(identifier) } ,
         None => panic!("Parse Error: Expect at least one token."),
     };
-
-    let token = tokens.pop();
+    let token = tokens.pop_op();
     match token {
-        Some(token) => match token {
-            Token::Op(op) => match op.as_ref() {
-                "=" => (),
-                _ => panic!("Parse Error: Expect = operator."),
-            }
-            _ => panic!("Parse Error: Expect an identifier token."),
+        Some(op) => match op.as_ref() {
+            "=" => (), 
+            _ => panic!("Parse Error: Expect an equal operator."),
         },
         None => panic!("Parse Error: Expect at least one token."),
     };
-
     let val = Box::new(parse_expression_entry(tokens));
-
-    AstNode::Bind(AstBinding {
-            ide, val
-        })
+    AstNode::Bind(AstBinding { ide, val })
 }
 
 fn parse_statement(mut tokens: Tokens) -> Ast {
     tokens.reverse();
-    let token = tokens.pop().expect("Parse Error: Expect at least one token.");
+    let token = tokens.peak().expect("Parse Error: Expect at least one token.");
     let lhs = match token {
-        Token::Ide(_) => {
-            tokens.push(token);
-            parse_binding(tokens)
-        },
-        Token::Num(_) => {
-            tokens.push(token);
-            parse_expression_entry(tokens)
-        },
+        Token::Ide(_) => parse_binding(tokens),
+        Token::Num(_) => parse_expression_entry(tokens),
         _ => panic!("Parse Error: Unexpected token."),
     };
     debug!("AST:\n {}", lhs);

@@ -12,9 +12,6 @@ impl Statements {
     pub fn new(asts: Vec<Ast>) -> Statements {
         Statements { asts }
     }
-    pub fn pop(&mut self) -> Option<Ast> {
-        self.asts.pop()
-    }
     pub fn emit(&self, context: &Context, builder: &Builder) {
 
         let ret = self.asts.iter().map(|ast| ast.emit(context, builder)).last();

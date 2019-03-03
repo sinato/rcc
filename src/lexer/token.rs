@@ -47,7 +47,7 @@ impl Tokens {
         match self.tokens.pop() {
             Some(token) => match token {
                 Token::Op(op) => match op.as_ref() {
-                    "+" | "*" => Some(op),
+                    "+" | "*" | "=" => Some(op),
                     _ => panic!("Not implemented operator"),
                 },
                 _ => panic!("Expect an operator token"),
@@ -55,11 +55,17 @@ impl Tokens {
             None => None,
         }
     }
-    pub fn pop(&mut self) -> Option<Token> {
-        self.tokens.pop()
+    pub fn pop_ide(&mut self) -> Option<String> {
+        match self.tokens.pop() {
+            Some(token) => match token {
+                Token::Ide(identifier) => Some(identifier),
+                _ => panic!("Expect an identifier token"),
+            },
+            None => None,
+        }
     }
-    pub fn push(&mut self, token: Token) {
-        self.tokens.push(token)
+    pub fn peak(&self) -> Option<Token> {
+        self.clone().tokens.pop()
     }
     pub fn reverse(&mut self) {
         self.tokens.reverse()

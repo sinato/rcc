@@ -52,7 +52,6 @@ fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (A
 }
 
 fn parse_expression_entry(mut tokens: Tokens) -> AstNode {
-    tokens.reverse();
     let token = tokens.pop();
     let mut lhs = match token {
         Some(token) => match token {
@@ -63,12 +62,10 @@ fn parse_expression_entry(mut tokens: Tokens) -> AstNode {
     };
     let (returned_lhs, _returned_tokens) = parse_expression(lhs, 0, tokens);
     lhs = returned_lhs;
-    debug!("AST:\n {}", lhs);
     lhs
 }
 
-fn parse_binding(mut tokens: Tokens) -> Ast {
-    tokens.reverse();
+fn parse_binding(mut tokens: Tokens) -> AstNode {
 
     let token = tokens.pop();
     let ide = match token {
@@ -93,15 +90,26 @@ fn parse_binding(mut tokens: Tokens) -> Ast {
 
     let val = Box::new(parse_expression_entry(tokens));
 
-    Ast {
-        ast: AstNode::Bind(AstBinding {
+    AstNode::Bind(AstBinding {
             ide, val
-        }),
-    }
+        })
 }
 
-fn parse_statement(tokens: Tokens) -> Ast {
-    let lhs = parse_expression_entry(tokens);
+fn parse_statement(mut tokens: Tokens) -> Ast {
+    tokens.reverse();
+    let token = tokens.pop().expect("Parse Error: Expect at least one token.");
+    let lhs = match token {
+        Token::Ide(_) => {
+            tokens.push(token);
+            parse_binding(tokens)
+        },
+        Token::Num(_) => {
+            tokens.push(token);
+            parse_expression_entry(tokens)
+        },
+        _ => panic!("Parse Error: Unexpected token."),
+    };
+    debug!("AST:\n {}", lhs);
     Ast { ast: lhs }
 }
 

@@ -58,6 +58,9 @@ impl Tokens {
     pub fn pop(&mut self) -> Option<Token> {
         self.tokens.pop()
     }
+    pub fn push(&mut self, token: Token) {
+        self.tokens.push(token)
+    }
     pub fn reverse(&mut self) {
         self.tokens.reverse()
     }

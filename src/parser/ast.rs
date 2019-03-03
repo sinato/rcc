@@ -30,6 +30,19 @@ pub struct AstBinding {
     pub ide: AstIde,
     pub val: Box<AstNode>,
 }
+impl AstBinding {
+    fn get_val(&self, context: &Context, builder: &Builder) -> IntValue {
+        let node = *self.val.clone();
+        node.emit(context, builder)
+    }
+    fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
+        let identifier = self.ide.get_identifier();
+        let pointer = builder.build_alloca(context.i32_type(), &identifier);
+        let val = self.get_val(context, builder);
+        builder.build_store(pointer, val);
+        val
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstBinaryExp {
@@ -97,6 +110,14 @@ impl AstOp {
 pub struct AstIde {
     pub ide: Token,
 }
+impl AstIde {
+    fn get_identifier(&self) -> String {
+        match self.ide.clone() {
+            Token::Ide(s) => s,
+            _ => panic!("expect identifier"),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum AstNode {
@@ -109,7 +130,7 @@ impl AstNode {
         match self {
             AstNode::Exp(ast_binary_exp) => ast_binary_exp.emit(context, builder),
             AstNode::Num(ast_num) => ast_num.emit(context, builder),
-            _ => panic!(""),
+            AstNode::Bind(ast_binding) => ast_binding.emit(context, builder),
         }
     }
 }
@@ -118,7 +139,7 @@ impl fmt::Display for AstNode {
         match self {
             AstNode::Exp(ast_binary_exp) => write!(f, "EXP: {}\n", ast_binary_exp),
             AstNode::Num(ast_num) => write!(f, "NUM: {:?}\n", ast_num),
-            _ => panic!(""),
+            AstNode::Bind(ast_binding) => write!(f, "BIND: {:?}\n", ast_binding),
         }
     }
 }

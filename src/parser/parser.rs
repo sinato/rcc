@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{Ast, AstNode, AstOp, AstIde, AstBinding, AstBinaryExp, AstNum, Statements, AstFinEnum, AstFin};
+use crate::parser::ast::{Ast, AstNode, AstOp, AstIde, AstBinding, AstBinaryExp, AstNum, Function, AstFinEnum, AstFin};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -83,7 +83,7 @@ fn parse_binding(mut tokens: Tokens) -> AstNode {
     AstNode::Bind(AstBinding { ide, val })
 }
 
-fn parse_statement(mut tokens: Tokens) -> Ast {
+fn parse_instruction(mut tokens: Tokens) -> Ast {
     tokens.reverse();
     let token = tokens.peak().expect("Parse Error: Expect at least one token.");
     let lhs = match token {
@@ -95,7 +95,7 @@ fn parse_statement(mut tokens: Tokens) -> Ast {
     Ast { ast: lhs }
 }
 
-fn get_statements(tokens: Tokens) -> Vec<Tokens> {
+fn get_instructions(tokens: Tokens) -> Vec<Tokens> {
     let tokens: Vec<Token> = tokens.get_tokens();
     let mut parsed_tokens: Vec<Tokens> = Vec::new();
     let mut tmp_tokens: Vec<Token> = Vec::new();
@@ -115,14 +115,14 @@ fn get_statements(tokens: Tokens) -> Vec<Tokens> {
     parsed_tokens
 }
 
-pub fn parser(tokens: Tokens) -> Statements {
-    let statements = get_statements(tokens);
-    debug!("STATEMENTS: {:?}", statements);
+pub fn parser(tokens: Tokens) -> Function{
+    let instructions = get_instructions(tokens);
+    debug!("INSTRUCTIONS: {:?}", instructions);
     let mut asts: Vec<Ast> = Vec::new();
-    for statement in statements {
-        asts.push(parse_statement(statement));
+    for instruction in instructions {
+        asts.push(parse_instruction(instruction));
     }
-    Statements::new(asts)
+    Function::new(asts)
 }
 
 
@@ -142,15 +142,15 @@ mod tests {
 
         let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10), Token::Semi, Token::Num(77), Token::Semi];
         let tokens  = Tokens { tokens };
-        assert_eq!(get_statements(tokens), expect);
+        assert_eq!(get_instructions(tokens), expect);
     }
 
     #[test]
     #[should_panic]
-    fn test_parse_statement_illegal() {
+    fn test_parse_instruction_illegal() {
         let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10)];
         let tokens  = Tokens { tokens };
-        get_statements(tokens);
+        get_instructions(tokens);
     }
 
     #[test]
@@ -160,7 +160,7 @@ mod tests {
         };
         let tokens = vec![Token::Num(2434)];
         let tokens = Tokens { tokens };
-        let actual = parse_statement(tokens);
+        let actual = parse_instruction(tokens);
         assert_eq!(actual, expect);
     }
 
@@ -169,7 +169,7 @@ mod tests {
     fn test_parser_num_illegal() {
         let tokens = vec![Token::Op(String::from("+"))];
         let tokens = Tokens { tokens };
-        parse_statement(tokens);
+        parse_instruction(tokens);
     }
 
     #[test]
@@ -177,7 +177,7 @@ mod tests {
     fn test_parser_illegal_tokens() {
         let tokens = vec![Token::Num(2434), Token::Op(String::from("+"))];
         let tokens = Tokens { tokens };
-        parse_statement(tokens);
+        parse_instruction(tokens);
     }
 
     #[test]
@@ -185,7 +185,7 @@ mod tests {
     fn test_parser_exp_illegal_tokens() {
         let tokens = vec![Token::Num(2434), Token::Num(2434), Token::Num(2434)];
         let tokens = Tokens { tokens };
-        parse_statement(tokens);
+        parse_instruction(tokens);
     }
 
     #[test]
@@ -197,7 +197,7 @@ mod tests {
             Token::Op(String::from("+")),
         ];
         let tokens = Tokens { tokens };
-        parse_statement(tokens);
+        parse_instruction(tokens);
     }
 
     #[test]
@@ -209,7 +209,7 @@ mod tests {
             Token::Num(2434),
         ];
         let tokens = Tokens { tokens };
-        parse_statement(tokens);
+        parse_instruction(tokens);
     }
 
     #[test]
@@ -224,7 +224,7 @@ mod tests {
         };
         let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20)];
         let tokens = Tokens { tokens };
-        let actual = parse_statement(tokens);
+        let actual = parse_instruction(tokens);
         assert_eq!(actual, expect);
     }
 
@@ -257,7 +257,7 @@ mod tests {
             Token::Num(30),
         ];
         let tokens = Tokens { tokens };
-        let actual = parse_statement(tokens);
+        let actual = parse_instruction(tokens);
         assert_eq!(actual, expect);
     }
 

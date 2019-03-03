@@ -2,13 +2,12 @@ use crate::lexer::token::Token;
 use std::fmt;
 
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Statements {
-    pub asts: Vec<Ast>,
+pub struct Function {
+    pub instructions: Vec<Ast>,
 }
-impl Statements {
-    pub fn new(asts: Vec<Ast>) -> Statements {
-        Statements { asts }
+impl Function {
+    pub fn new(instructions: Vec<Ast>) -> Function {
+        Function { instructions }
     }
 }
 

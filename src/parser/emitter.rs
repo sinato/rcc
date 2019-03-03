@@ -30,15 +30,15 @@ impl Emitter {
     pub fn print_to_file(&self, filename: &str) {
         let _ = self.module.print_to_file(path::Path::new(filename));
     }
-    pub fn emit(&mut self, statements: Statements) {
-        // generate function prototype
-        let function = self.module.add_function("main", self.context.i32_type().fn_type(&[], false), None);
-        let basic_block = self.context.append_basic_block(&function, "entry");
-        self.builder.position_at_end(&basic_block);
-        self.emit_statement(statements)
+    pub fn emit(&mut self, function: Function) {
+        self.emit_function(function)
     }
-    fn emit_statement(&mut self, statements: Statements) {
-        let asts = statements.asts.clone();
+    fn emit_function(&mut self, function: Function) {
+        let func = self.module.add_function("main", self.context.i32_type().fn_type(&[], false), None);
+        let basic_block = self.context.append_basic_block(&func, "entry");
+        self.builder.position_at_end(&basic_block);
+
+        let asts = function.instructions.clone();
         let ret = asts.into_iter().map(|ast| self.emit_ast(ast)).last();
         match ret {
             Some(ret) => self.builder.build_return(Some(&ret)),

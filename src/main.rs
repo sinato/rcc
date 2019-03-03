@@ -9,7 +9,7 @@ mod lexer;
 use lexer::lexer::Lexer;
 mod parser;
 use parser::parser::parser;
-use parser::ast::Emitter;
+use parser::emitter::Emitter;
 
 /// BNF:
 /// PROGRAM    := (STATEMENT)+

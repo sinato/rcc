@@ -40,15 +40,6 @@ impl Tokens {
         map.insert(String::from("*"), 20);
         map[&operator]
     }
-    pub fn pop_num(&mut self) -> Option<u64> {
-        match self.tokens.pop() {
-            Some(token) => match token {
-                Token::Num(num) => Some(num),
-                _ => panic!("Expect a number token"),
-            },
-            None => None,
-        }
-    }
     pub fn pop_op(&mut self) -> Option<String> {
         match self.tokens.pop() {
             Some(token) => match token {

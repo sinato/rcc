@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{Ast, AstNode, AstOp, AstBinaryExp, AstNum, Statements};
+use crate::parser::ast::{Ast, AstNode, AstOp, AstIde, AstBinding, AstBinaryExp, AstNum, Statements};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -51,7 +51,7 @@ fn parse_expression(mut lhs: AstNode, min_precedence: u32, tokens: Tokens) -> (A
     (lhs, tokens)
 }
 
-fn parse_statement(mut tokens: Tokens) -> Ast {
+fn parse_expression_entry(mut tokens: Tokens) -> AstNode {
     tokens.reverse();
     let token = tokens.pop();
     let mut lhs = match token {
@@ -64,9 +64,46 @@ fn parse_statement(mut tokens: Tokens) -> Ast {
     let (returned_lhs, _returned_tokens) = parse_expression(lhs, 0, tokens);
     lhs = returned_lhs;
     debug!("AST:\n {}", lhs);
-    Ast { ast: lhs }
+    lhs
 }
 
+fn parse_binding(mut tokens: Tokens) -> Ast {
+    tokens.reverse();
+
+    let token = tokens.pop();
+    let ide = match token {
+        Some(token) => match token {
+            Token::Ide(_) => AstIde { ide: token },
+            _ => panic!("Parse Error: Expect an identifier token."),
+        },
+        None => panic!("Parse Error: Expect at least one token."),
+    };
+
+    let token = tokens.pop();
+    match token {
+        Some(token) => match token {
+            Token::Op(op) => match op.as_ref() {
+                "=" => (),
+                _ => panic!("Parse Error: Expect = operator."),
+            }
+            _ => panic!("Parse Error: Expect an identifier token."),
+        },
+        None => panic!("Parse Error: Expect at least one token."),
+    };
+
+    let val = Box::new(parse_expression_entry(tokens));
+
+    Ast {
+        ast: AstNode::Bind(AstBinding {
+            ide, val
+        }),
+    }
+}
+
+fn parse_statement(tokens: Tokens) -> Ast {
+    let lhs = parse_expression_entry(tokens);
+    Ast { ast: lhs }
+}
 
 fn get_statements(tokens: Tokens) -> Vec<Tokens> {
     let tokens: Vec<Token> = tokens.get_tokens();
@@ -90,6 +127,7 @@ fn get_statements(tokens: Tokens) -> Vec<Tokens> {
 
 pub fn parser(tokens: Tokens) -> Statements {
     let statements = get_statements(tokens);
+    debug!("STATEMENTS: {:?}", statements);
     let mut asts: Vec<Ast> = Vec::new();
     for statement in statements {
         asts.push(parse_statement(statement));

@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub enum Token {
     Num(u64),
     Op(String),
+    Ide(String),
     Semi,
 }
 impl Token {

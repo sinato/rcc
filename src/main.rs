@@ -13,8 +13,11 @@ use parser::parser::parser;
 
 /// BNF:
 /// PROGRAM    := (STATEMENT)+
-/// STATEMENT  := EXPRESSION;
+/// STATEMENT  := NODE
+/// NODE       := EXPRESSION|BINDING|NUM;
 /// EXPRESSION := NUM (OP NUM)+
+/// BINDING    := IDEN = NODE
+/// NUM        := [0-9]+
 fn compiler(code: String) {
     // initialize
     let context = Context::create();

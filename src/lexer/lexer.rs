@@ -11,8 +11,9 @@ impl Lexer {
     pub fn new() -> Lexer {
         let token_patterns = vec![
             ("NUM", r"\d+(\.\d)*"),
-            ("OP", r"[+*]"),
+            ("OP", r"[+*=]"),
             ("SEMI", r";"),
+            ("IDEN", r"[a-z]+")
         ];
         let re = make_regex(&token_patterns);
         let names = get_names(&token_patterns);
@@ -30,7 +31,6 @@ impl Lexer {
     fn tokenize(&self, code: String) -> Tokens {
         let mut tokens: Vec<Token> = Vec::new();
         for caps in self.re.captures_iter(&code) {
-            debug!("caps:  {:?}", caps);
             let mut typ = String::from("nil");
             let val = String::from(&caps[0]);
             for name in &self.names {
@@ -42,10 +42,11 @@ impl Lexer {
                 "NUM" => tokens.push(Token::Num(val.parse::<u64>().expect("something went wrong parsing a number"))),
                 "OP" => tokens.push(Token::Op(val)),
                 "SEMI" => tokens.push(Token::Semi),
+                "IDEN" => tokens.push(Token::Ide(val)),
                 _ => panic!("This is not an expected panic"),
             }
-            debug!("tokens:  {:?}", tokens);
         }
+        debug!("tokens:  {:?}", tokens);
         Tokens { tokens }
     }
 }
@@ -102,6 +103,16 @@ mod tests {
         };
         let actual = lexer.lex(code);
         assert_eq!(actual, expect);
+    }
+
+    #[test]
+    fn test_lex_binding() {
+        let lexer = get_lexer();
+        let code = String::from("abc = 10;");
+        let expect = Tokens {
+            tokens: vec![Token::Ide(String::from("abc")), Token::Op(String::from("=")), Token::Num(10), Token::Semi],
+        };
+        assert_eq!(lexer.tokenize(code), expect);
     }
 
     #[test]

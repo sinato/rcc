@@ -25,6 +25,11 @@ impl Statements {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstBinding {
+    pub ide: AstIde,
+    pub val: Box<AstNode>,
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstBinaryExp {
@@ -89,15 +94,22 @@ impl AstOp {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct AstIde {
+    pub ide: Token,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum AstNode {
     Exp(AstBinaryExp),
     Num(AstNum),
+    Bind(AstBinding),
 }
 impl AstNode {
     pub fn emit(&self, context: &Context, builder: &Builder) -> IntValue {
         match self {
             AstNode::Exp(ast_binary_exp) => ast_binary_exp.emit(context, builder),
             AstNode::Num(ast_num) => ast_num.emit(context, builder),
+            _ => panic!(""),
         }
     }
 }
@@ -106,6 +118,7 @@ impl fmt::Display for AstNode {
         match self {
             AstNode::Exp(ast_binary_exp) => write!(f, "EXP: {}\n", ast_binary_exp),
             AstNode::Num(ast_num) => write!(f, "NUM: {:?}\n", ast_num),
+            _ => panic!(""),
         }
     }
 }

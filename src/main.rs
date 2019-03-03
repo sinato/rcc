@@ -11,6 +11,10 @@ use lexer::lexer::Lexer;
 mod parser;
 use parser::parser::parser;
 
+/// BNF:
+/// PROGRAM    := (STATEMENT)+
+/// STATEMENT  := EXPRESSION;
+/// EXPRESSION := NUM (OP NUM)+
 fn compiler(code: String) {
     // initialize
     let context = Context::create();

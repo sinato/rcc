@@ -5,6 +5,7 @@ pub enum Token {
     Num(u64),
     Op(String),
     Ide(String),
+    Ret,
     Semi,
 }
 impl Token {
@@ -69,6 +70,9 @@ impl Tokens {
             }
             None => None,
         }
+    }
+    pub fn pop(&mut self) -> Option<Token> {
+        self.tokens.pop()
     }
     pub fn peak(&self) -> Option<Token> {
         self.clone().tokens.pop()

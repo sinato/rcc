@@ -1,3 +1,4 @@
 int main() {
     abc = 24;
+    return abc;
 }

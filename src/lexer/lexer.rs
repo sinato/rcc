@@ -13,7 +13,8 @@ impl Lexer {
             ("NUM", r"\d+(\.\d)*"),
             ("OP", r"[+*=]"),
             ("SEMI", r";"),
-            ("IDEN", r"[a-z]+")
+            ("RET", r"return "),
+            ("IDEN", r"[a-z]+"),
         ];
         let re = make_regex(&token_patterns);
         let names = get_names(&token_patterns);
@@ -43,6 +44,7 @@ impl Lexer {
                 "OP" => tokens.push(Token::Op(val)),
                 "SEMI" => tokens.push(Token::Semi),
                 "IDEN" => tokens.push(Token::Ide(val)),
+                "RET" => tokens.push(Token::Ret),
                 _ => panic!("This is not an expected panic"),
             }
         }
@@ -120,7 +122,7 @@ mod tests {
         let lexer = get_lexer();
         let code = get_code("test_one_num");
         let code = lexer.strip_mock_main(code);
-        let expect = String::from("    10;");
+        let expect = String::from("    return 10;");
         assert_eq!(code, expect);
     }
 

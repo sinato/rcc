@@ -65,6 +65,12 @@ fn parse_expression_entry(mut tokens: Tokens) -> AstNode {
     lhs
 }
 
+fn parse_return(mut tokens: Tokens) -> AstNode {
+    // TODO: implement validation?
+    tokens.pop();
+    parse_expression_entry(tokens)
+}
+
 fn parse_binding(mut tokens: Tokens) -> AstNode {
     let token = tokens.pop_ide();
     let ide = match token {
@@ -88,7 +94,7 @@ fn parse_instruction(mut tokens: Tokens) -> Ast {
     let token = tokens.peak().expect("Parse Error: Expect at least one token.");
     let lhs = match token {
         Token::Ide(_) => parse_binding(tokens),
-        Token::Num(_) => parse_expression_entry(tokens),
+        Token::Ret => parse_return(tokens),
         _ => panic!("Parse Error: Unexpected token."),
     };
     debug!("AST:\n {}", lhs);
@@ -148,7 +154,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_parse_instruction_illegal() {
-        let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10)];
+        let tokens = vec![Token::Ret, Token::Num(10), Token::Op(String::from("+")), Token::Num(10)];
         let tokens  = Tokens { tokens };
         get_instructions(tokens);
     }
@@ -158,7 +164,7 @@ mod tests {
         let expect = Ast {
             ast: get_astnode_num(2434)
         };
-        let tokens = vec![Token::Num(2434)];
+        let tokens = vec![Token::Ret, Token::Num(2434)];
         let tokens = Tokens { tokens };
         let actual = parse_instruction(tokens);
         assert_eq!(actual, expect);
@@ -167,7 +173,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_parser_num_illegal() {
-        let tokens = vec![Token::Op(String::from("+"))];
+        let tokens = vec![Token::Ret, Token::Op(String::from("+"))];
         let tokens = Tokens { tokens };
         parse_instruction(tokens);
     }
@@ -175,7 +181,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_parser_illegal_tokens() {
-        let tokens = vec![Token::Num(2434), Token::Op(String::from("+"))];
+        let tokens = vec![Token::Ret, Token::Num(2434), Token::Op(String::from("+"))];
         let tokens = Tokens { tokens };
         parse_instruction(tokens);
     }
@@ -183,7 +189,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_parser_exp_illegal_tokens() {
-        let tokens = vec![Token::Num(2434), Token::Num(2434), Token::Num(2434)];
+        let tokens = vec![Token::Ret, Token::Num(2434), Token::Num(2434), Token::Num(2434)];
         let tokens = Tokens { tokens };
         parse_instruction(tokens);
     }
@@ -192,6 +198,7 @@ mod tests {
     #[should_panic]
     fn test_parser_exp_illegal_tokens2() {
         let tokens = vec![
+            Token::Ret,
             Token::Num(2434),
             Token::Op(String::from("+")),
             Token::Op(String::from("+")),
@@ -204,6 +211,7 @@ mod tests {
     #[should_panic]
     fn test_parser_exp_noimplemented_operator() {
         let tokens = vec![
+            Token::Ret,
             Token::Num(2434),
             Token::Op(String::from("-")),
             Token::Num(2434),
@@ -222,7 +230,7 @@ mod tests {
         let expect = Ast {
             ast: AstNode::Exp(AstBinaryExp { lhs, op, rhs }),
         };
-        let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20)];
+        let tokens = vec![Token::Ret, Token::Num(10), Token::Op(String::from("+")), Token::Num(20)];
         let tokens = Tokens { tokens };
         let actual = parse_instruction(tokens);
         assert_eq!(actual, expect);
@@ -250,6 +258,7 @@ mod tests {
         };
 
         let tokens = vec![
+            Token::Ret,
             Token::Num(10),
             Token::Op(String::from("+")),
             Token::Num(20),

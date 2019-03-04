@@ -30,35 +30,31 @@ impl Emitter {
     pub fn print_to_file(&self, filename: &str) {
         let _ = self.module.print_to_file(path::Path::new(filename));
     }
-    pub fn emit(&mut self, function: Function) {
+    pub fn emit(&mut self, function: AstFunction) {
         self.emit_function(function)
     }
-    fn emit_function(&mut self, function: Function) {
+    fn emit_function(&mut self, function: AstFunction) {
         let func = self.module.add_function("main", self.context.i32_type().fn_type(&[], false), None);
         let basic_block = self.context.append_basic_block(&func, "entry");
         self.builder.position_at_end(&basic_block);
 
         let asts = function.instructions.clone();
-        let ret = asts.into_iter().map(|ast| self.emit_ast(ast)).last();
+        let ret = asts.into_iter().map(|ast| self.emit_ast_instruction(ast)).last();
         match ret {
             Some(ret) => self.builder.build_return(Some(&ret)),
             None => panic!("Emit Error: Expect at least an ast."),
         };
     }
-    fn emit_ast(&mut self, ast: Ast) -> IntValue {
-        let ast_node = ast.ast;
-        self.emit_ast_node(ast_node)
-    }
-    fn emit_ast_node(&mut self, ast_node: AstNode) -> IntValue {
+    fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> IntValue {
         match ast_node {
-            AstNode::Exp(ast) => self.emit_ast_exp(ast),
-            AstNode::Fin(ast) => self.emit_ast_fin(ast),
-            AstNode::Bind(ast) => self.emit_ast_bind(ast),
+            AstInstruction::Exp(ast) => self.emit_ast_exp(ast),
+            AstInstruction::Fin(ast) => self.emit_ast_fin(ast),
+            AstInstruction::Bind(ast) => self.emit_ast_bind(ast),
         }
     }
-    fn emit_ast_exp(&mut self, ast_binary_exp: AstBinaryExp) -> IntValue {
-        let lhs_num = self.emit_ast_node(*ast_binary_exp.lhs.clone());
-        let rhs_num = self.emit_ast_node(*ast_binary_exp.rhs.clone());
+    fn emit_ast_exp(&mut self, ast_binary_exp: AstExp) -> IntValue {
+        let lhs_num = self.emit_ast_instruction(*ast_binary_exp.lhs.clone());
+        let rhs_num = self.emit_ast_instruction(*ast_binary_exp.rhs.clone());
         let op = ast_binary_exp.get_op_string();
         match op.as_ref() {
             "+" => self.builder.build_int_add(lhs_num, rhs_num, "sum"),
@@ -67,16 +63,15 @@ impl Emitter {
         }
     }
     fn emit_ast_fin(&self, ast_fin: AstFin) -> IntValue {
-        let ast_fin_enum = ast_fin.fin;
-        match ast_fin_enum {
-            AstFinEnum::Num(ast) => self.emit_ast_num(ast),
-            AstFinEnum::Ide(ast) => self.emit_ast_ide(ast),
+        match ast_fin {
+            AstFin::Num(ast) => self.emit_ast_num(ast),
+            AstFin::Ide(ast) => self.emit_ast_ide(ast),
         }
     }
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {
         let identifier = ast_binding.ide.get_identifier();
         let pointer = self.builder.build_alloca(self.context.i32_type(), &identifier);
-        let val = self.emit_ast_node(*ast_binding.val);
+        let val = self.emit_ast_instruction(*ast_binding.val);
 
         self.builder.build_store(pointer, val);
         self.variables.insert(identifier, pointer);

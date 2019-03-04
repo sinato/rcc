@@ -2,33 +2,58 @@ use crate::lexer::token::Token;
 use std::fmt;
 
 
-pub struct Function {
-    pub instructions: Vec<Ast>,
+pub struct AstFunction {
+    pub instructions: Vec<AstInstruction>,
 }
-impl Function {
-    pub fn new(instructions: Vec<Ast>) -> Function {
-        Function { instructions }
+impl AstFunction {
+    pub fn new(instructions: Vec<AstInstruction>) -> AstFunction {
+        AstFunction { instructions }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum AstInstruction {
+    Exp(AstExp),
+    Fin(AstFin),
+    Bind(AstBinding),
+}
+impl fmt::Display for AstInstruction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            AstInstruction::Exp(ast_binary_exp) => write!(f, "EXP: {}\n", ast_binary_exp),
+            AstInstruction::Fin(ast) => write!(f, "FIN: {:?}\n", ast),
+            AstInstruction::Bind(ast_binding) => write!(f, "BIND: {:?}\n", ast_binding),
+        }
+    }
+}
+impl AstInstruction {
+    pub fn new_from_token_fin(token: Token) -> AstInstruction {
+        match token {
+            Token::Num(num) => AstInstruction::Fin(AstFin::new_from_num_token(Token::Num(num))),
+            Token::Ide(ide) => AstInstruction::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
+            _ => panic!("Unexpected")
+        }
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstBinding {
     pub ide: AstIde,
-    pub val: Box<AstNode>,
+    pub val: Box<AstInstruction>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct AstBinaryExp {
+pub struct AstExp {
     pub op: AstOp,
-    pub lhs: Box<AstNode>,
-    pub rhs: Box<AstNode>,
+    pub lhs: Box<AstInstruction>,
+    pub rhs: Box<AstInstruction>,
 }
-impl AstBinaryExp {
+impl AstExp {
     pub fn get_op_string(&self) -> String {
         self.op.get_op()
     }
 }
-impl fmt::Display for AstBinaryExp {
+impl fmt::Display for AstExp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -39,21 +64,17 @@ impl fmt::Display for AstBinaryExp {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct AstFin {
-    pub fin: AstFinEnum,
+pub enum AstFin {
+    Num(AstNum),
+    Ide(AstIde),
 }
 impl AstFin {
     pub fn new_from_num_token(num: Token) -> AstFin {
-        AstFin { fin: AstFinEnum::Num(AstNum { num })}
+        AstFin::Num(AstNum { num })
     }
     pub fn new_from_ide_token(ide: Token) -> AstFin {
-        AstFin { fin: AstFinEnum::Ide(AstIde { ide })}
+        AstFin::Ide(AstIde { ide })
     }
-}
-#[derive(Debug, PartialEq, Clone)]
-pub enum AstFinEnum {
-    Num(AstNum),
-    Ide(AstIde),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -87,32 +108,3 @@ impl AstIde {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum AstNode {
-    Exp(AstBinaryExp),
-    Fin(AstFin),
-    Bind(AstBinding),
-}
-impl fmt::Display for AstNode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            AstNode::Exp(ast_binary_exp) => write!(f, "EXP: {}\n", ast_binary_exp),
-            AstNode::Fin(ast) => write!(f, "FIN: {:?}\n", ast),
-            AstNode::Bind(ast_binding) => write!(f, "BIND: {:?}\n", ast_binding),
-        }
-    }
-}
-impl AstNode {
-    pub fn new_from_token_fin(token: Token) -> AstNode {
-        match token {
-            Token::Num(num) => AstNode::Fin(AstFin::new_from_num_token(Token::Num(num))),
-            Token::Ide(ide) => AstNode::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
-            _ => panic!("Unexpected")
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct Ast {
-    pub ast: AstNode,
-}

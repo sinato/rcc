@@ -39,11 +39,7 @@ impl Emitter {
         self.builder.position_at_end(&basic_block);
 
         let asts = function.instructions.clone();
-        let ret = asts.into_iter().map(|ast| self.emit_ast_instruction(ast)).last();
-        match ret {
-            Some(ret) => self.builder.build_return(Some(&ret)),
-            None => panic!("Emit Error: Expect at least an ast."),
-        };
+        asts.into_iter().map(|ast| self.emit_ast_instruction(ast)).last();
     }
     fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> IntValue {
         match ast_node {

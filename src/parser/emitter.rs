@@ -50,11 +50,33 @@ impl Emitter {
             AstInstruction::Exp(ast) => self.emit_ast_exp(ast),
             AstInstruction::Fin(ast) => self.emit_ast_fin(ast),
             AstInstruction::Bind(ast) => self.emit_ast_bind(ast),
+            AstInstruction::Val(ast) => self.emit_ast_val(ast),
+            AstInstruction::Return(ast) => self.emit_ast_return(ast),
+        }
+    }
+    fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {
+        let identifier = ast_binding.ide.get_identifier();
+        let pointer = self.builder.build_alloca(self.context.i32_type(), &identifier);
+        let val = self.emit_ast_val(*ast_binding.val);
+
+        self.builder.build_store(pointer, val);
+        self.variables.insert(identifier, pointer);
+        val
+    }
+    fn emit_ast_return(&mut self, ast_ret: AstReturn) -> IntValue {
+        let ret = self.emit_ast_val(*ast_ret.val);
+        self.builder.build_return(Some(&ret));
+        ret
+    }
+    fn emit_ast_val(&mut self, ast_val: AstVal) -> IntValue {
+        match ast_val {
+            AstVal::Exp(ast) => self.emit_ast_exp(ast),
+            AstVal::Fin(ast) => self.emit_ast_fin(ast),
         }
     }
     fn emit_ast_exp(&mut self, ast_binary_exp: AstExp) -> IntValue {
-        let lhs_num = self.emit_ast_instruction(*ast_binary_exp.lhs.clone());
-        let rhs_num = self.emit_ast_instruction(*ast_binary_exp.rhs.clone());
+        let lhs_num = self.emit_ast_val(*ast_binary_exp.lhs.clone());
+        let rhs_num = self.emit_ast_val(*ast_binary_exp.rhs.clone());
         let op = ast_binary_exp.get_op_string();
         match op.as_ref() {
             "+" => self.builder.build_int_add(lhs_num, rhs_num, "sum"),
@@ -67,15 +89,6 @@ impl Emitter {
             AstFin::Num(ast) => self.emit_ast_num(ast),
             AstFin::Ide(ast) => self.emit_ast_ide(ast),
         }
-    }
-    fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {
-        let identifier = ast_binding.ide.get_identifier();
-        let pointer = self.builder.build_alloca(self.context.i32_type(), &identifier);
-        let val = self.emit_ast_instruction(*ast_binding.val);
-
-        self.builder.build_store(pointer, val);
-        self.variables.insert(identifier, pointer);
-        val
     }
     fn emit_ast_num(&self, ast_num: AstNum) -> IntValue {
         self.context.i32_type().const_int(ast_num.num.get_num(), false)

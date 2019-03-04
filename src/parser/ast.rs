@@ -16,37 +16,51 @@ pub enum AstInstruction {
     Exp(AstExp),
     Fin(AstFin),
     Bind(AstBinding),
+    Val(AstVal),
+    Return(AstReturn),
 }
 impl fmt::Display for AstInstruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            AstInstruction::Exp(ast_binary_exp) => write!(f, "EXP: {}\n", ast_binary_exp),
+            AstInstruction::Exp(ast) => write!(f, "EXP: {:?}\n", ast),
             AstInstruction::Fin(ast) => write!(f, "FIN: {:?}\n", ast),
-            AstInstruction::Bind(ast_binding) => write!(f, "BIND: {:?}\n", ast_binding),
+            AstInstruction::Bind(ast) => write!(f, "BIND: {:?}\n", ast),
+            AstInstruction::Val(ast) => write!(f, "VAL: {:?}\n", ast),
+            AstInstruction::Return(ast) => write!(f, "Ret: {:?}\n", ast),
         }
     }
 }
-impl AstInstruction {
-    pub fn new_from_token_fin(token: Token) -> AstInstruction {
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstReturn {
+    pub val: Box<AstVal>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstBinding {
+    pub ide: AstIde,
+    pub val: Box<AstVal>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum AstVal {
+    Exp(AstExp),
+    Fin(AstFin),
+}
+impl AstVal {
+    pub fn new_from_token_fin(token: Token) -> AstVal {
         match token {
-            Token::Num(num) => AstInstruction::Fin(AstFin::new_from_num_token(Token::Num(num))),
-            Token::Ide(ide) => AstInstruction::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
+            Token::Num(num) => AstVal::Fin(AstFin::new_from_num_token(Token::Num(num))),
+            Token::Ide(ide) => AstVal::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
             _ => panic!("Unexpected")
         }
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct AstBinding {
-    pub ide: AstIde,
-    pub val: Box<AstInstruction>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
 pub struct AstExp {
     pub op: AstOp,
-    pub lhs: Box<AstInstruction>,
-    pub rhs: Box<AstInstruction>,
+    pub lhs: Box<AstVal>,
+    pub rhs: Box<AstVal>,
 }
 impl AstExp {
     pub fn get_op_string(&self) -> String {
@@ -62,7 +76,18 @@ impl fmt::Display for AstExp {
         )
     }
 }
-
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstIde {
+    pub ide: Token,
+}
+impl AstIde {
+    pub fn get_identifier(&self) -> String {
+        match self.ide.clone() {
+            Token::Ide(s) => s,
+            _ => panic!("expect identifier"),
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub enum AstFin {
     Num(AstNum),
@@ -94,17 +119,3 @@ impl AstOp {
         }
     }
 }
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct AstIde {
-    pub ide: Token,
-}
-impl AstIde {
-    pub fn get_identifier(&self) -> String {
-        match self.ide.clone() {
-            Token::Ide(s) => s,
-            _ => panic!("expect identifier"),
-        }
-    }
-}
-

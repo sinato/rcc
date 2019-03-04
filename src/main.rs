@@ -15,8 +15,9 @@ use parser::emitter::Emitter;
 /// program     := function
 /// function    := (instruction;)+
 /// instruction := [ binding | return ]
-/// binding     := IDENTIFIER = expression
-/// return      := return expression
+/// binding     := IDENTIFIER = val
+/// return      := return val
+/// val         := [ fin | expression ]
 /// expression  := fin (op fin)+
 /// fin         := NUMBER | IDENTIFIER
 fn compiler(code: String) {

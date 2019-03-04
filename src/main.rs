@@ -11,15 +11,14 @@ mod parser;
 use parser::parser::parser;
 use parser::emitter::Emitter;
 
-/// BNF:
-/// PROGRAM    := (STATEMENT)+
-/// STATEMENT  := NODE
-/// NODE       := EXPRESSION|BINDING|FIN;
-/// EXPRESSION := FIN (OP FIN)+
-/// BINDING    := IDEN = NODE
-/// FIN        := NUM|IDEN
-/// IDEN       := [\s]+
-/// NUM        := [0-9]+
+/// EBNF:
+/// program     := function
+/// function    := (instruction;)+
+/// instruction := [ binding | return ]
+/// binding     := IDENTIFIER = expression
+/// return      := return expression
+/// expression  := fin (op fin)+
+/// fin         := NUMBER | IDENTIFIER
 fn compiler(code: String) {
     let lexer = Lexer::new();
     let tokens = lexer.lex(code);

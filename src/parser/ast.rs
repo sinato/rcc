@@ -26,7 +26,7 @@ impl fmt::Display for AstInstruction {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstReturn {
-    pub val: Box<AstVal>,
+    pub val: AstVal,
 }
 
 #[derive(Debug, PartialEq, Clone)]

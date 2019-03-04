@@ -61,7 +61,7 @@ impl Emitter {
         val
     }
     fn emit_ast_return(&mut self, ast_ret: AstReturn) -> IntValue {
-        let ret = self.emit_ast_val(*ast_ret.val);
+        let ret = self.emit_ast_val(ast_ret.val);
         self.builder.build_return(Some(&ret));
         ret
     }

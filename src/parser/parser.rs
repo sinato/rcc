@@ -84,7 +84,7 @@ fn parse_binding(mut tokens: Tokens) -> AstInstruction {
         },
         None => panic!("Parse Error: Expect at least one token."),
     };
-    let val = Box::new(parse_expression_entry(tokens));
+    let val = parse_expression_entry(tokens);
     AstInstruction::Bind(AstBinding { ide, val })
 }
 

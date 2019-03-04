@@ -54,7 +54,7 @@ impl Emitter {
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {
         let identifier = ast_binding.ide.get_identifier();
         let pointer = self.builder.build_alloca(self.context.i32_type(), &identifier);
-        let val = self.emit_ast_val(*ast_binding.val);
+        let val = self.emit_ast_val(ast_binding.val);
 
         self.builder.build_store(pointer, val);
         self.variables.insert(identifier, pointer);

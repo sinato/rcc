@@ -32,7 +32,7 @@ pub struct AstReturn {
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstBinding {
     pub ide: AstIde,
-    pub val: Box<AstVal>,
+    pub val: AstVal,
 }
 
 #[derive(Debug, PartialEq, Clone)]

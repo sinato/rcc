@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{AstInstruction, AstVal, AstOp, AstIde, AstBinding, AstExp, AstNum, AstFunction, AstFin};
+use crate::parser::ast::{AstInstruction, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstNum, AstFunction, AstFin};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -54,7 +54,6 @@ fn parse_expression(mut lhs: AstVal, min_precedence: u32, tokens: Tokens) -> (As
 }
 
 fn parse_expression_entry(mut tokens: Tokens) -> AstVal {
-
     let token = tokens.pop_fin();
     let lhs = match token {
         Some(token) => AstVal::new_from_token_fin(token),
@@ -67,7 +66,8 @@ fn parse_expression_entry(mut tokens: Tokens) -> AstVal {
 fn parse_return(mut tokens: Tokens) -> AstInstruction {
     // TODO: implement validation?
     tokens.pop();
-    AstInstruction::Val(parse_expression_entry(tokens))
+    let ast = AstReturn{  val: Box::new(parse_expression_entry(tokens))};
+    AstInstruction::Return(ast)
 }
 
 fn parse_binding(mut tokens: Tokens) -> AstInstruction {
@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn test_parser_num() {
-        let expect = AstInstruction::Val(get_astnode_num(2434));
+        let expect = AstInstruction::Return(AstReturn{ val: Box::new(get_astnode_num(2434)) });
         let tokens = vec![Token::Ret, Token::Num(2434)];
         let tokens = Tokens { tokens };
         let actual = parse_instruction(tokens);
@@ -222,10 +222,11 @@ mod tests {
             op: Token::Op(String::from("+")),
         };
         let rhs = Box::new(get_astnode_num(20));
-        let expect = AstInstruction::Val(AstVal::Exp(AstExp { lhs, op, rhs }));
+        let expect = AstInstruction::Return(AstReturn{ val:  Box::new(AstVal::Exp(AstExp{ lhs, op, rhs }))});
         let tokens = vec![Token::Ret, Token::Num(10), Token::Op(String::from("+")), Token::Num(20)];
         let tokens = Tokens { tokens };
         let actual = parse_instruction(tokens);
+
         assert_eq!(actual, expect);
     }
 
@@ -246,7 +247,7 @@ mod tests {
             op: Token::Op(String::from("+")),
         };
         // make expected ast
-        let expect = AstInstruction::Val(AstVal::Exp(AstExp { lhs, op, rhs }));
+        let expect = AstInstruction::Return(AstReturn{ val: Box::new(AstVal::Exp(AstExp { lhs, op, rhs }))});
 
         let tokens = vec![
             Token::Ret,

@@ -13,19 +13,13 @@ impl AstFunction {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum AstInstruction {
-    Exp(AstExp),
-    Fin(AstFin),
     Bind(AstBinding),
-    Val(AstVal),
     Return(AstReturn),
 }
 impl fmt::Display for AstInstruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            AstInstruction::Exp(ast) => write!(f, "EXP: {:?}\n", ast),
-            AstInstruction::Fin(ast) => write!(f, "FIN: {:?}\n", ast),
             AstInstruction::Bind(ast) => write!(f, "BIND: {:?}\n", ast),
-            AstInstruction::Val(ast) => write!(f, "VAL: {:?}\n", ast),
             AstInstruction::Return(ast) => write!(f, "Ret: {:?}\n", ast),
         }
     }

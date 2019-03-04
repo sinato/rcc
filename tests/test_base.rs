@@ -86,7 +86,7 @@ fn test_prioritize_expression4() {
 #[test]
 fn test_multi_expression() {
     let code = get_code("test_multi_expression");
-    run(&code, "10");
+    run(&code, "30");
 }
 
 #[test]

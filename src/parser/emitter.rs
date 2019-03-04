@@ -47,10 +47,7 @@ impl Emitter {
     }
     fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> IntValue {
         match ast_node {
-            AstInstruction::Exp(ast) => self.emit_ast_exp(ast),
-            AstInstruction::Fin(ast) => self.emit_ast_fin(ast),
             AstInstruction::Bind(ast) => self.emit_ast_bind(ast),
-            AstInstruction::Val(ast) => self.emit_ast_val(ast),
             AstInstruction::Return(ast) => self.emit_ast_return(ast),
         }
     }

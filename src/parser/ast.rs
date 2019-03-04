@@ -70,18 +70,7 @@ impl fmt::Display for AstExp {
         )
     }
 }
-#[derive(Debug, PartialEq, Clone)]
-pub struct AstIde {
-    pub ide: Token,
-}
-impl AstIde {
-    pub fn get_identifier(&self) -> String {
-        match self.ide.clone() {
-            Token::Ide(s) => s,
-            _ => panic!("expect identifier"),
-        }
-    }
-}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum AstFin {
     Num(AstNum),
@@ -95,7 +84,18 @@ impl AstFin {
         AstFin::Ide(AstIde { ide })
     }
 }
-
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstIde {
+    pub ide: Token,
+}
+impl AstIde {
+    pub fn get_identifier(&self) -> String {
+        match self.ide.clone() {
+            Token::Ide(s) => s,
+            _ => panic!("expect identifier"),
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstNum {
     pub num: Token,

@@ -39,12 +39,17 @@ impl Emitter {
         self.builder.position_at_end(&basic_block);
 
         let asts = function.instructions.clone();
-        asts.into_iter().map(|ast| self.emit_ast_instruction(ast)).last();
+        for ast in asts {
+            match self.emit_ast_instruction(ast) {
+                Some(_) => (),
+                None => break,
+            }
+        }
     }
-    fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> IntValue {
+    fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> Option<IntValue> {
         match ast_node {
-            AstInstruction::Bind(ast) => self.emit_ast_bind(ast),
-            AstInstruction::Return(ast) => self.emit_ast_return(ast),
+            AstInstruction::Bind(ast) => Some(self.emit_ast_bind(ast)),
+            AstInstruction::Return(ast) => { self.emit_ast_return(ast); None },
         }
     }
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {

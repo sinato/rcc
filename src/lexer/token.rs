@@ -5,6 +5,8 @@ pub enum Token {
     Num(u64),
     Op(String),
     Ide(String),
+    BlockE,
+    BlockS,
     Ret,
     Semi,
 }

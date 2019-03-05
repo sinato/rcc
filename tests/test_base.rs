@@ -96,6 +96,12 @@ fn test_multi_expression2() {
 }
 
 #[test]
+fn test_multi_expression3() {
+    let code = get_code("test_multi_expression3");
+    run(&code, "36");
+}
+
+#[test]
 fn test_variable() {
     let code = get_code("test_variable");
     run(&code, "24");

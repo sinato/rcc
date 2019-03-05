@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{AstInstruction, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstNum, AstFunction, AstFin};
+use crate::parser::ast::{AstInstruction, AstCompoundStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstNum, AstFunction, AstFin};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -98,15 +98,27 @@ fn parse_instruction(mut tokens: Tokens) -> AstInstruction {
     }
 }
 
-fn parse_function(tokens: Tokens) -> Vec<Tokens> {
-    let tokens: Vec<Token> = tokens.get_tokens();
-    let mut parsed_tokens: Vec<Tokens> = Vec::new();
+fn parse_compound_statement(tokens: Tokens) -> (AstStatement, Tokens) {
+    let mut tokens: Vec<Token> = tokens.get_tokens();
+    let mut compound_tokens: Vec<Token> = Vec::new();
+    loop {
+        let token = tokens.pop();
+        match token {
+            Some(token) => match token {
+                Token::BlockE => break,
+                _ => compound_tokens.push(token),
+            },
+            None => panic!("Expect Token::BlockE"),
+        }
+    }
+    let mut instructions: Vec<AstInstruction> = Vec::new();
     let mut tmp_tokens: Vec<Token> = Vec::new();
-    for token in tokens {
+    for token in compound_tokens {
         match token {
             Token::Semi => {
-                let t = tmp_tokens.clone();
-                parsed_tokens.push(Tokens { tokens: t });
+                let t = Tokens { tokens: tmp_tokens.clone() };
+                let instruction = parse_instruction(t);
+                instructions.push(instruction);
                 tmp_tokens.clear();
             },
             _ => tmp_tokens.push(token),
@@ -115,19 +127,51 @@ fn parse_function(tokens: Tokens) -> Vec<Tokens> {
     if tmp_tokens.len() != 0 {
         panic!("Parse Error: Expected the last semicolon, but not found.");
     }
-    parsed_tokens
+    (AstStatement::CompoundStatement(AstCompoundStatement::Instructions(instructions)), Tokens{tokens})
+}
+
+fn parse_statement(tokens: Tokens) -> AstStatement {
+    AstStatement::Instruction(parse_instruction(tokens))
+}
+
+fn parse_function(tokens: Tokens) -> Vec<AstStatement> {
+    let mut tokens: Vec<Token> = tokens.get_tokens();
+    tokens.reverse();
+    let mut statements: Vec<AstStatement> = Vec::new();
+    let mut tmp_tokens: Vec<Token> = Vec::new();
+    loop {
+        let token = tokens.pop();
+        match token {
+            Some(token) => match token{
+                Token::Semi => {
+                    let t = Tokens { tokens: tmp_tokens.clone() };
+                    let statement = parse_statement(t);
+                    statements.push(statement);
+                    tmp_tokens.clear();
+                },
+                Token::BlockS => {
+                    if tmp_tokens.len() > 0 {
+                        panic!("Unexpected syntax.");
+                    }
+                    let (ret_statement, ret_tokens) = parse_compound_statement(Tokens{ tokens: tokens.clone() });
+                    tokens = ret_tokens.tokens;
+                    statements.push(ret_statement);
+                }
+                _ => tmp_tokens.push(token),
+                },
+            None => break,
+        }
+    }
+    if tmp_tokens.len() != 0 {
+        panic!("Parse Error: Expected the last semicolon, but not found.");
+    }
+    statements
 }
 
 pub fn parser(tokens: Tokens) -> AstFunction{
-    let instructions = parse_function(tokens);
-
-    debug!("INSTRUCTIONS: {:?}", instructions);
-
-    let mut asts: Vec<AstStatement> = Vec::new();
-    for instruction in instructions {
-        asts.push(AstStatement::Instruction(parse_instruction(instruction)));
-    }
-    AstFunction::new(asts)
+    let statements = parse_function(tokens);
+    debug!("INSTRUCTIONS: {:?}", statements);
+    AstFunction::new(statements)
 }
 
 
@@ -140,14 +184,18 @@ mod tests {
     }
 
     #[test]
-    fn test_get_statements() {
-        let tokens1 = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10)];
-        let tokens2 = vec![Token::Num(77)];
-        let expect = vec![Tokens { tokens: tokens1 }, Tokens { tokens: tokens2 }];
+    fn test_parse_compound_statement() {
+        let ast_return = AstReturn { val: AstVal::Fin(AstFin::Num(AstNum{ num: Token::Num(33) })) };
+        let expect_instructions = vec![AstInstruction::Return(ast_return)];
+        let expect_ast = AstCompoundStatement::Instructions(expect_instructions);
+        let expect_ast = AstStatement::CompoundStatement(expect_ast);
+        let expect_tokens = Tokens { tokens: vec![Token::Num(22)] };
+        let expect = (expect_ast, expect_tokens);
 
-        let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10), Token::Semi, Token::Num(77), Token::Semi];
-        let tokens  = Tokens { tokens };
-        assert_eq!(parse_function(tokens), expect);
+        let mut tokens = vec![Token::Ret, Token::Num(33), Token::Semi, Token::BlockE, Token::Num(22)];
+        tokens.reverse();
+        let tokens = Tokens { tokens };
+        assert_eq!(parse_compound_statement(tokens), expect);
     }
 
     #[test]

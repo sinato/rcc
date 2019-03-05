@@ -13,6 +13,8 @@ impl Lexer {
             ("NUM", r"\d+(\.\d)*"),
             ("OP", r"[+*=]"),
             ("SEMI", r";"),
+            ("BLOCK_S", r"\{"),
+            ("BLOCK_E", r"\}"),
             ("RET", r"return "),
             ("IDEN", r"[a-z]+"),
         ];
@@ -44,6 +46,8 @@ impl Lexer {
                 "OP" => tokens.push(Token::Op(val)),
                 "SEMI" => tokens.push(Token::Semi),
                 "IDEN" => tokens.push(Token::Ide(val)),
+                "BLOCK_S" => tokens.push(Token::BlockS),
+                "BLOCK_E" => tokens.push(Token::BlockE),
                 "RET" => tokens.push(Token::Ret),
                 _ => panic!("This is not an expected panic"),
             }

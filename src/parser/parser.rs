@@ -98,7 +98,7 @@ fn parse_instruction(mut tokens: Tokens) -> AstInstruction {
     }
 }
 
-fn get_instructions(tokens: Tokens) -> Vec<Tokens> {
+fn parse_function(tokens: Tokens) -> Vec<Tokens> {
     let tokens: Vec<Token> = tokens.get_tokens();
     let mut parsed_tokens: Vec<Tokens> = Vec::new();
     let mut tmp_tokens: Vec<Token> = Vec::new();
@@ -119,8 +119,10 @@ fn get_instructions(tokens: Tokens) -> Vec<Tokens> {
 }
 
 pub fn parser(tokens: Tokens) -> AstFunction{
-    let instructions = get_instructions(tokens);
+    let instructions = parse_function(tokens);
+
     debug!("INSTRUCTIONS: {:?}", instructions);
+
     let mut asts: Vec<AstStatement> = Vec::new();
     for instruction in instructions {
         asts.push(AstStatement::Instruction(parse_instruction(instruction)));
@@ -145,7 +147,7 @@ mod tests {
 
         let tokens = vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(10), Token::Semi, Token::Num(77), Token::Semi];
         let tokens  = Tokens { tokens };
-        assert_eq!(get_instructions(tokens), expect);
+        assert_eq!(parse_function(tokens), expect);
     }
 
     #[test]
@@ -153,7 +155,7 @@ mod tests {
     fn test_parse_instruction_illegal() {
         let tokens = vec![Token::Ret, Token::Num(10), Token::Op(String::from("+")), Token::Num(10)];
         let tokens  = Tokens { tokens };
-        get_instructions(tokens);
+        parse_function(tokens);
     }
 
     #[test]

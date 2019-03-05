@@ -14,8 +14,9 @@ use parser::emitter::Emitter;
 /// EBNF:
 /// program              := function
 /// function             := statement+
-/// statement            := [ instruction; ]
+/// statement            := [ instruction; | compound_statement ]
 /// instruction          := [ binding | return ]
+/// compound_statement   := { (instruction;)* }
 /// binding              := IDENTIFIER = val
 /// return               := return val
 /// val                  := [ fin | expression ]

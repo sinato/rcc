@@ -49,12 +49,28 @@ impl Emitter {
     fn emit_ast_statement(&mut self, ast_node: AstStatement) -> Option<IntValue> {
         match ast_node {
             AstStatement::Instruction(ast) => self.emit_ast_instruction(ast),
+            AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
         }
     }
     fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> Option<IntValue> {
         match ast_node {
             AstInstruction::Bind(ast) => Some(self.emit_ast_bind(ast)),
             AstInstruction::Return(ast) => { self.emit_ast_return(ast); None },
+        }
+    }
+    fn emit_ast_compound_statement(&mut self, ast: AstCompoundStatement) -> Option<IntValue> {
+        // TODO: refactoring
+        let AstCompoundStatement::Instructions(asts) = ast;
+        let mut val = None;
+        for ast in asts {
+            match self.emit_ast_instruction(ast) {
+                Some(v) => val = Some(v),
+                None => panic!("Return is not allowed in a block."),
+            };
+        }
+        match val {
+            Some(_) => val,
+            None => panic!("This block has no statements."),
         }
     }
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {

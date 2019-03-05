@@ -14,6 +14,7 @@ impl AstFunction {
 #[derive(Debug, PartialEq, Clone)]
 pub enum AstStatement {
     Instruction(AstInstruction),
+    CompoundStatement(AstCompoundStatement),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -29,6 +30,11 @@ impl fmt::Display for AstInstruction {
         }
     }
 }
+#[derive(Debug, PartialEq, Clone)]
+pub enum AstCompoundStatement {
+    Instructions(Vec<AstInstruction>),
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstReturn {
     pub val: AstVal,

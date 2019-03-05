@@ -3,12 +3,17 @@ use std::fmt;
 
 
 pub struct AstFunction {
-    pub instructions: Vec<AstInstruction>,
+    pub statements: Vec<AstStatement>,
 }
 impl AstFunction {
-    pub fn new(instructions: Vec<AstInstruction>) -> AstFunction {
-        AstFunction { instructions }
+    pub fn new(statements: Vec<AstStatement>) -> AstFunction {
+        AstFunction { statements }
     }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum AstStatement {
+    Instruction(AstInstruction),
 }
 
 #[derive(Debug, PartialEq, Clone)]

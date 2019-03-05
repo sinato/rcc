@@ -12,14 +12,15 @@ use parser::parser::parser;
 use parser::emitter::Emitter;
 
 /// EBNF:
-/// program     := function
-/// function    := (instruction;)+
-/// instruction := [ binding | return ]
-/// binding     := IDENTIFIER = val
-/// return      := return val
-/// val         := [ fin | expression ]
-/// expression  := fin (op fin)+
-/// fin         := NUMBER | IDENTIFIER
+/// program              := function
+/// function             := statement+
+/// statement            := [ instruction; ]
+/// instruction          := [ binding | return ]
+/// binding              := IDENTIFIER = val
+/// return               := return val
+/// val                  := [ fin | expression ]
+/// expression           := fin (op fin)+
+/// fin                  := NUMBER | IDENTIFIER
 fn compiler(code: String) {
     let lexer = Lexer::new();
     let tokens = lexer.lex(code);

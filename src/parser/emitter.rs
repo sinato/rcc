@@ -38,12 +38,17 @@ impl Emitter {
         let basic_block = self.context.append_basic_block(&func, "entry");
         self.builder.position_at_end(&basic_block);
 
-        let asts = function.instructions.clone();
+        let asts = function.statements.clone();
         for ast in asts {
-            match self.emit_ast_instruction(ast) {
+            match self.emit_ast_statement(ast) {
                 Some(_) => (),
                 None => break,
             }
+        }
+    }
+    fn emit_ast_statement(&mut self, ast_node: AstStatement) -> Option<IntValue> {
+        match ast_node {
+            AstStatement::Instruction(ast) => self.emit_ast_instruction(ast),
         }
     }
     fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> Option<IntValue> {

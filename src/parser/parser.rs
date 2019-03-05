@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{AstInstruction, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstNum, AstFunction, AstFin};
+use crate::parser::ast::{AstInstruction, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstNum, AstFunction, AstFin};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -121,9 +121,9 @@ fn get_instructions(tokens: Tokens) -> Vec<Tokens> {
 pub fn parser(tokens: Tokens) -> AstFunction{
     let instructions = get_instructions(tokens);
     debug!("INSTRUCTIONS: {:?}", instructions);
-    let mut asts: Vec<AstInstruction> = Vec::new();
+    let mut asts: Vec<AstStatement> = Vec::new();
     for instruction in instructions {
-        asts.push(parse_instruction(instruction));
+        asts.push(AstStatement::Instruction(parse_instruction(instruction)));
     }
     AstFunction::new(asts)
 }

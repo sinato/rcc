@@ -7,6 +7,7 @@ pub enum Token {
     Ide(String),
     BlockE,
     BlockS,
+    If,
     Ret,
     Semi,
 }

@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{AstInstruction, AstCompoundStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstNum, AstFunction, AstFin};
+use crate::parser::ast::{AstInstruction, AstIfStatement, AstCompoundStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstNum, AstFunction, AstFin};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -130,6 +130,23 @@ fn parse_compound_statement(tokens: Tokens) -> (AstStatement, Tokens) {
     (AstStatement::CompoundStatement(AstCompoundStatement::Instructions(instructions)), Tokens{tokens})
 }
 
+fn parse_if_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatement, Tokens) {
+    tmp_tokens.reverse();
+    let first_token = tmp_tokens.pop();
+    match first_token {
+        Some(token) => match token {
+            Token::If => (),
+            _ => panic!("Expected if token"),
+        }
+        None => panic!("Expected if token"),
+    }
+    let condition_val = parse_expression_entry(tmp_tokens);
+    let (block, ret_tokens) = parse_compound_statement(tokens);
+    let block = Box::new(block);
+    let ast_if = AstStatement::IfStatement(AstIfStatement{ condition_val, block });
+    (ast_if, ret_tokens)
+}
+
 fn parse_statement(tokens: Tokens) -> AstStatement {
     AstStatement::Instruction(parse_instruction(tokens))
 }
@@ -150,15 +167,16 @@ fn parse_function(tokens: Tokens) -> Vec<AstStatement> {
                     tmp_tokens.clear();
                 },
                 Token::BlockS => {
-                    if tmp_tokens.len() > 0 {
-                        panic!("Unexpected syntax.");
-                    }
-                    let (ret_statement, ret_tokens) = parse_compound_statement(Tokens{ tokens: tokens.clone() });
+                    let (ret_statement, ret_tokens) = match tmp_tokens.len() {
+                        0 => parse_compound_statement(Tokens{ tokens: tokens.clone() }),
+                        _ => parse_if_statement(Tokens{ tokens: tmp_tokens.clone() }, Tokens{ tokens: tokens.clone() }),
+                    };
+                    tmp_tokens.clear();
                     tokens = ret_tokens.tokens;
                     statements.push(ret_statement);
                 }
                 _ => tmp_tokens.push(token),
-                },
+            },
             None => break,
         }
     }

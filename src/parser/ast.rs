@@ -15,6 +15,7 @@ impl AstFunction {
 pub enum AstStatement {
     Instruction(AstInstruction),
     CompoundStatement(AstCompoundStatement),
+    IfStatement(AstIfStatement)
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -33,6 +34,12 @@ impl fmt::Display for AstInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub enum AstCompoundStatement {
     Instructions(Vec<AstInstruction>),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstIfStatement {
+    pub condition_val: AstVal,
+    pub block: Box<AstStatement>,
 }
 
 #[derive(Debug, PartialEq, Clone)]

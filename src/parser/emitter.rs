@@ -4,6 +4,7 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::values::{IntValue, PointerValue};
+use crate::lexer::token::Token;
 use std::collections::HashMap;
 use std::path;
 
@@ -50,6 +51,7 @@ impl Emitter {
         match ast_node {
             AstStatement::Instruction(ast) => self.emit_ast_instruction(ast),
             AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
+            AstStatement::IfStatement(ast) => self.emit_ast_if_statement(ast),
         }
     }
     fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> Option<IntValue> {
@@ -71,6 +73,13 @@ impl Emitter {
         match val {
             Some(_) => val,
             None => panic!("This block has no statements."),
+        }
+    }
+    fn emit_ast_if_statement(&mut self, ast: AstIfStatement) -> Option<IntValue> {
+        let block = ast.block;
+        match ast.condition_val {
+            AstVal::Fin(AstFin::Num(AstNum{ num: Token::Num(0) })) => None,
+            _ => self.emit_ast_statement(*block),
         }
     }
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {
@@ -120,5 +129,3 @@ impl Emitter {
         }
     }
 }
-
-

@@ -77,8 +77,9 @@ impl Emitter {
     }
     fn emit_ast_if_statement(&mut self, ast: AstIfStatement) -> Option<IntValue> {
         let block = ast.block;
+        let const_zero = self.context.i64_type().const_int(0, false);
         match ast.condition_val {
-            AstVal::Fin(AstFin::Num(AstNum{ num: Token::Num(0) })) => None,
+            AstVal::Fin(AstFin::Num(AstNum{ num: Token::Num(0) })) => Some(const_zero),
             _ => self.emit_ast_statement(*block),
         }
     }

@@ -112,3 +112,9 @@ fn test_if_true() {
     let code = get_code("test_if_true");
     run(&code, "33");
 }
+
+#[test]
+fn test_if_false() {
+    let code = get_code("test_if_false");
+    run(&code, "1");
+}

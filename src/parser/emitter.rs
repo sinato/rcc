@@ -3,23 +3,39 @@ use crate::parser::ast::*;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
-use inkwell::values::{IntValue, PointerValue};
-use crate::lexer::token::Token;
+use inkwell::IntPredicate;
+use inkwell::values::{IntValue, PointerValue, FunctionValue};
 use std::collections::HashMap;
 use std::path;
+
+#[derive(Clone)]
+struct Environment {
+    variables: HashMap<String, PointerValue>
+}
+impl Environment {
+    fn new() -> Environment {
+        Environment{ variables: HashMap::new() }
+    }
+    fn get(&self, s: &str) -> Option<&PointerValue> {
+        self.variables.get(s)
+    }
+    fn insert(&mut self, identifier: String, pointer: PointerValue) {
+        self.variables.insert(identifier, pointer);
+    }
+}
 
 pub struct Emitter {
     context: Context,
     builder: Builder,
     module: Module,
-    variables: HashMap<String, PointerValue>
+    variables: Environment
 }
 impl Emitter {
     pub fn new() -> Emitter {
         let context = Context::create();
         let module = context.create_module("my_module");
         let builder = context.create_builder();
-        let variables = HashMap::new();
+        let variables = Environment::new();
 
         Emitter {
             context,
@@ -41,56 +57,87 @@ impl Emitter {
 
         let asts = function.statements.clone();
         for ast in asts {
-            match self.emit_ast_statement(ast) {
+            match self.emit_ast_statement(ast, func).0 {
                 Some(_) => (),
                 None => break,
             }
         }
     }
-    fn emit_ast_statement(&mut self, ast_node: AstStatement) -> Option<IntValue> {
+    fn emit_ast_statement(&mut self, ast_node: AstStatement, function: FunctionValue) -> (Option<IntValue>, Environment) {
         match ast_node {
             AstStatement::Instruction(ast) => self.emit_ast_instruction(ast),
             AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
-            AstStatement::IfStatement(ast) => self.emit_ast_if_statement(ast),
+            AstStatement::IfStatement(ast) => self.emit_ast_if_statement(ast, function),
         }
     }
-    fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> Option<IntValue> {
+    fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> (Option<IntValue>, Environment) {
+        let statement_environment = self.variables.clone();
         match ast_node {
-            AstInstruction::Bind(ast) => Some(self.emit_ast_bind(ast)),
-            AstInstruction::Return(ast) => { self.emit_ast_return(ast); None },
+            AstInstruction::Bind(ast) => {
+                let (ret_value, ret_environment) = self.emit_ast_bind(ast, statement_environment);
+                self.variables = ret_environment.clone();  // ??
+                (Some(ret_value), ret_environment)
+            },
+            AstInstruction::Return(ast) => { self.emit_ast_return(ast); (None, statement_environment) },
         }
     }
-    fn emit_ast_compound_statement(&mut self, ast: AstCompoundStatement) -> Option<IntValue> {
+    fn emit_ast_compound_statement(&mut self, ast: AstCompoundStatement) -> (Option<IntValue>, Environment) {
+        let statement_environment = self.variables.clone();
         // TODO: refactoring
         let AstCompoundStatement::Instructions(asts) = ast;
         let mut val = None;
         for ast in asts {
-            match self.emit_ast_instruction(ast) {
+            match self.emit_ast_instruction(ast).0 {
                 Some(v) => val = Some(v),
                 None => panic!("Return is not allowed in a block."),
             };
         }
         match val {
-            Some(_) => val,
+            Some(_) => (val, statement_environment),
             None => panic!("This block has no statements."),
         }
     }
-    fn emit_ast_if_statement(&mut self, ast: AstIfStatement) -> Option<IntValue> {
+    fn emit_ast_if_statement(&mut self, ast: AstIfStatement, function: FunctionValue) -> (Option<IntValue>, Environment) {
+        let statement_environment = self.variables.clone();
         let block = ast.block;
-        let const_zero = self.context.i64_type().const_int(0, false);
-        match ast.condition_val {
-            AstVal::Fin(AstFin::Num(AstNum{ num: Token::Num(0) })) => Some(const_zero),
-            _ => self.emit_ast_statement(*block),
-        }
+
+        let const_one = self.context.i32_type().const_int(0, false);
+        let cond = self.emit_ast_val(ast.condition_val);
+
+        let cond = self.builder.build_int_compare(IntPredicate::EQ, cond, const_one, "ifcond");
+
+        let then_block = self.context.append_basic_block(&function, "then");
+        let else_block = self.context.append_basic_block(&function, "else");
+        let cont_block = self.context.append_basic_block(&function, "cont");
+
+        self.builder.build_conditional_branch(cond, &then_block, &else_block);
+
+        self.builder.position_at_end(&then_block);
+        let then_val = self.emit_ast_statement(*block, function).0.expect("");
+        self.builder.build_unconditional_branch(&cont_block);
+        self.builder.get_insert_block().unwrap();
+
+        self.builder.position_at_end(&else_block);
+        // emit something "else"
+        self.builder.build_unconditional_branch(&cont_block);
+        self.builder.get_insert_block().unwrap();
+
+        self.builder.position_at_end(&cont_block);
+        let phi = self.builder.build_phi(self.context.i32_type(), "iftmp");
+        phi.add_incoming(&[
+                         (&then_val, &then_block),
+                         (&const_one, &else_block),
+        ]);
+        (Some(phi.as_basic_value().into_int_value()), statement_environment)
     }
-    fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {
+    fn emit_ast_bind(&mut self, ast_binding: AstBinding, mut environment: Environment) -> (IntValue, Environment) {
         let identifier = ast_binding.ide.get_identifier();
         let pointer = self.builder.build_alloca(self.context.i32_type(), &identifier);
         let val = self.emit_ast_val(ast_binding.val);
 
         self.builder.build_store(pointer, val);
-        self.variables.insert(identifier, pointer);
-        val
+        environment.insert(identifier, pointer);
+        (val, environment)
     }
     fn emit_ast_return(&mut self, ast_ret: AstReturn) -> IntValue {
         let ret = self.emit_ast_val(ast_ret.val);

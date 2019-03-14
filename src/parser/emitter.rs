@@ -64,31 +64,42 @@ impl Emitter {
         }
     }
     fn emit_ast_statement(&mut self, ast_node: AstStatement, function: FunctionValue) -> (Option<IntValue>, Environment) {
-        match ast_node {
+        let (ret_val, ret_env) = match ast_node {
             AstStatement::Instruction(ast) => self.emit_ast_instruction(ast),
             AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
             AstStatement::IfStatement(ast) => self.emit_ast_if_statement(ast, function),
-        }
+        };
+        self.variables = ret_env.clone();
+        (ret_val, ret_env)
     }
     fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> (Option<IntValue>, Environment) {
         let statement_environment = self.variables.clone();
         match ast_node {
             AstInstruction::Bind(ast) => {
                 let (ret_value, ret_environment) = self.emit_ast_bind(ast, statement_environment);
-                self.variables = ret_environment.clone();  // ??
                 (Some(ret_value), ret_environment)
             },
-            AstInstruction::Return(ast) => { self.emit_ast_return(ast); (None, statement_environment) },
+            AstInstruction::Return(ast) => { 
+                let (_, ret_environment) = self.emit_ast_return(ast, statement_environment);
+                (None, ret_environment) 
+            },
         }
     }
     fn emit_ast_compound_statement(&mut self, ast: AstCompoundStatement) -> (Option<IntValue>, Environment) {
-        let statement_environment = self.variables.clone();
+        let mut statement_environment = self.variables.clone();
         // TODO: refactoring
         let AstCompoundStatement::Instructions(asts) = ast;
         let mut val = None;
+
         for ast in asts {
-            match self.emit_ast_instruction(ast).0 {
-                Some(v) => val = Some(v),
+            let (ret_val, ret_env) = self.emit_ast_instruction(ast);
+            match ret_val {
+                Some(v) => {
+                    val = Some(v);
+                    for (identifier, pointer) in ret_env.variables.into_iter() {
+                        statement_environment.insert(identifier, pointer);
+                    }
+                },
                 None => panic!("Return is not allowed in a block."),
             };
         }
@@ -98,7 +109,7 @@ impl Emitter {
         }
     }
     fn emit_ast_if_statement(&mut self, ast: AstIfStatement, function: FunctionValue) -> (Option<IntValue>, Environment) {
-        let statement_environment = self.variables.clone();
+        let mut statement_environment = self.variables.clone();
         let block = ast.block;
 
         let const_one = self.context.i32_type().const_int(0, false);
@@ -111,9 +122,10 @@ impl Emitter {
         let cont_block = self.context.append_basic_block(&function, "cont");
 
         self.builder.build_conditional_branch(cond, &then_block, &else_block);
-
         self.builder.position_at_end(&then_block);
-        let then_val = self.emit_ast_statement(*block, function).0.expect("");
+
+        let (then_val, ret_env) = self.emit_ast_statement(*block, function);
+        let then_val = then_val.unwrap();
         self.builder.build_unconditional_branch(&cont_block);
         self.builder.get_insert_block().unwrap();
 
@@ -124,6 +136,11 @@ impl Emitter {
 
         self.builder.position_at_end(&cont_block);
         let phi = self.builder.build_phi(self.context.i32_type(), "iftmp");
+
+        for (identifier, pointer) in ret_env.variables.into_iter() {
+            statement_environment.insert(identifier, pointer);
+        }
+
         phi.add_incoming(&[
                          (&then_val, &then_block),
                          (&const_one, &else_block),
@@ -139,10 +156,11 @@ impl Emitter {
         environment.insert(identifier, pointer);
         (val, environment)
     }
-    fn emit_ast_return(&mut self, ast_ret: AstReturn) -> IntValue {
+    fn emit_ast_return(&mut self, ast_ret: AstReturn, environment: Environment) -> (IntValue, Environment) {
+        let statement_environment = environment.clone();
         let ret = self.emit_ast_val(ast_ret.val);
         self.builder.build_return(Some(&ret));
-        ret
+        (ret, statement_environment)
     }
     fn emit_ast_val(&mut self, ast_val: AstVal) -> IntValue {
         match ast_val {

@@ -8,19 +8,23 @@ use inkwell::values::{IntValue, PointerValue, FunctionValue};
 use std::collections::HashMap;
 use std::path;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Environment {
-    variables: HashMap<String, PointerValue>
+    variables_stack: Vec<HashMap<String, PointerValue>>
 }
 impl Environment {
     fn new() -> Environment {
-        Environment{ variables: HashMap::new() }
+        let env1: HashMap<String, PointerValue> = HashMap::new();
+        Environment{ variables_stack: vec![env1] }
     }
-    fn get(&self, s: &str) -> Option<&PointerValue> {
-        self.variables.get(s)
+    fn get(&mut self, s: &str) -> Option<&PointerValue> {
+        self.variables_stack[0].get(s)
     }
     fn insert(&mut self, identifier: String, pointer: PointerValue) {
-        self.variables.insert(identifier, pointer);
+        self.variables_stack[0].insert(identifier, pointer);
+    }
+    fn get_variables(&self) -> HashMap<String, PointerValue> {
+        self.variables_stack[0].clone()
     }
 }
 
@@ -96,7 +100,7 @@ impl Emitter {
             match ret_val {
                 Some(v) => {
                     val = Some(v);
-                    for (identifier, pointer) in ret_env.variables.into_iter() {
+                    for (identifier, pointer) in ret_env.get_variables().into_iter() {
                         statement_environment.insert(identifier, pointer);
                     }
                 },
@@ -137,7 +141,7 @@ impl Emitter {
         self.builder.position_at_end(&cont_block);
         let phi = self.builder.build_phi(self.context.i32_type(), "iftmp");
 
-        for (identifier, pointer) in ret_env.variables.into_iter() {
+        for (identifier, pointer) in ret_env.get_variables().into_iter() {
             statement_environment.insert(identifier, pointer);
         }
 
@@ -178,7 +182,7 @@ impl Emitter {
             _ => panic!("Emit Error: Not implemented operator"),
         }
     }
-    fn emit_ast_fin(&self, ast_fin: AstFin) -> IntValue {
+    fn emit_ast_fin(&mut self, ast_fin: AstFin) -> IntValue {
         match ast_fin {
             AstFin::Num(ast) => self.emit_ast_num(ast),
             AstFin::Ide(ast) => self.emit_ast_ide(ast),
@@ -187,7 +191,7 @@ impl Emitter {
     fn emit_ast_num(&self, ast_num: AstNum) -> IntValue {
         self.context.i32_type().const_int(ast_num.num.get_num(), false)
     }
-    fn emit_ast_ide(&self, ast_ide: AstIde) -> IntValue {
+    fn emit_ast_ide(&mut self, ast_ide: AstIde) -> IntValue {
         let allocation = self.variables.get(&ast_ide.get_identifier());
         match allocation {
             Some(pointer) => self.builder.build_load(*pointer, &ast_ide.ide.get_ide()).into_int_value(),

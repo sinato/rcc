@@ -17,11 +17,40 @@ impl Environment {
         let env1: HashMap<String, PointerValue> = HashMap::new();
         Environment{ variables_stack: vec![env1] }
     }
+    fn push_env(&mut self) {
+        let env1: HashMap<String, PointerValue> = HashMap::new();
+        self.variables_stack.push(env1);
+    } 
+    fn pop_env(&mut self) {
+        match self.variables_stack.pop() {
+            Some(_) => (),
+            None => panic!("Expect at least one environement.")
+        }
+    }
     fn get(&mut self, s: &str) -> Option<&PointerValue> {
         self.variables_stack[0].get(s)
     }
+    fn update_exists(&mut self, identifier: String, pointer: PointerValue) -> Result<String, &str> {
+        for variables in &mut self.variables_stack {
+            if variables.contains_key(&identifier) {
+                variables.insert(identifier.clone(), pointer);
+                return Ok(identifier);
+            }
+        }
+        Err("identifier not found")
+    }
     fn insert(&mut self, identifier: String, pointer: PointerValue) {
-        self.variables_stack[0].insert(identifier, pointer);
+        // We search the existing binding at first.
+        // Declaration cannot be distinguished from definition yet
+        // println!("$$$$insert {:?}", identifier);
+        match self.update_exists(identifier.clone(), pointer) {
+            Ok(_) => (),
+            Err(_) => {
+                if let Some(last) = self.variables_stack.last_mut() {
+                    last.insert(identifier, pointer);
+                }
+            },
+        };
     }
     fn get_variables(&self) -> HashMap<String, PointerValue> {
         self.variables_stack[0].clone()
@@ -73,28 +102,37 @@ impl Emitter {
             AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
             AstStatement::IfStatement(ast) => self.emit_ast_if_statement(ast, function),
         };
-        self.variables = ret_env.clone();
+        for (key, val) in ret_env.get_variables().into_iter() {
+            self.variables.insert(key, val);
+        }
+        /*
+        println!("************");
+        for (key, _) in self.variables.get_variables().iter() {
+            println!("{:?}", key);
+        }
+        println!("************");
+        */
         (ret_val, ret_env)
     }
     fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> (Option<IntValue>, Environment) {
-        let statement_environment = self.variables.clone();
         match ast_node {
             AstInstruction::Bind(ast) => {
-                let (ret_value, ret_environment) = self.emit_ast_bind(ast, statement_environment);
+                let (ret_value, ret_environment) = self.emit_ast_bind(ast);
                 (Some(ret_value), ret_environment)
             },
             AstInstruction::Return(ast) => { 
-                let (_, ret_environment) = self.emit_ast_return(ast, statement_environment);
+                let (_, ret_environment) = self.emit_ast_return(ast);
                 (None, ret_environment) 
             },
         }
     }
     fn emit_ast_compound_statement(&mut self, ast: AstCompoundStatement) -> (Option<IntValue>, Environment) {
         let mut statement_environment = self.variables.clone();
+        statement_environment.push_env();
+
         // TODO: refactoring
         let AstCompoundStatement::Instructions(asts) = ast;
         let mut val = None;
-
         for ast in asts {
             let (ret_val, ret_env) = self.emit_ast_instruction(ast);
             match ret_val {
@@ -107,6 +145,7 @@ impl Emitter {
                 None => panic!("Return is not allowed in a block."),
             };
         }
+        statement_environment.pop_env();
         match val {
             Some(_) => (val, statement_environment),
             None => panic!("This block has no statements."),
@@ -151,17 +190,18 @@ impl Emitter {
         ]);
         (Some(phi.as_basic_value().into_int_value()), statement_environment)
     }
-    fn emit_ast_bind(&mut self, ast_binding: AstBinding, mut environment: Environment) -> (IntValue, Environment) {
+    fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> (IntValue, Environment) {
+        let mut statement_environment = Environment::new();
         let identifier = ast_binding.ide.get_identifier();
         let pointer = self.builder.build_alloca(self.context.i32_type(), &identifier);
         let val = self.emit_ast_val(ast_binding.val);
 
         self.builder.build_store(pointer, val);
-        environment.insert(identifier, pointer);
-        (val, environment)
+        statement_environment.insert(identifier, pointer);
+        (val, statement_environment)
     }
-    fn emit_ast_return(&mut self, ast_ret: AstReturn, environment: Environment) -> (IntValue, Environment) {
-        let statement_environment = environment.clone();
+    fn emit_ast_return(&mut self, ast_ret: AstReturn) -> (IntValue, Environment) {
+        let statement_environment = self.variables.clone();
         let ret = self.emit_ast_val(ast_ret.val);
         self.builder.build_return(Some(&ret));
         (ret, statement_environment)

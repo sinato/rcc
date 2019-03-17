@@ -96,8 +96,8 @@ fn test_multi_expression2() {
 }
 
 #[test]
-fn test_multi_expression3() {
-    let code = get_code("test_multi_expression3");
+fn test_compound_statement() {
+    let code = get_code("test_compound_statement");
     run(&code, "36");
 }
 

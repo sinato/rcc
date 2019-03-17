@@ -1,7 +1,9 @@
 int main() {
-    a = 10;
+    a = 1;
+    b = 3;
     if 1 {
-        a = a + 23;
+        a = a + 100;
+        b = b + 100;
     }
-    return a;
+    return a + b;
 }

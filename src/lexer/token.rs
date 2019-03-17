@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub enum Token {
     Num(u64),
     Op(String),
+    CondOp(String),
     Ide(String),
     ParenE,
     ParenS,
@@ -48,6 +49,18 @@ impl Tokens {
                     _ => panic!("Not implemented operator"),
                 },
                 _ => panic!("Expect an operator token"),
+            },
+            None => None,
+        }
+    }
+    pub fn pop_condop(&mut self) -> Option<String> {
+        match self.tokens.pop() {
+            Some(token) => match token {
+                Token::CondOp(op) => match op.as_ref() {
+                    "==" => Some(op),
+                    _ => panic!("Not implemented operator"),
+                },
+                _ => panic!("Expect a conditional operator token"),
             },
             None => None,
         }

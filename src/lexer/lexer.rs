@@ -11,6 +11,7 @@ impl Lexer {
     pub fn new() -> Lexer {
         let token_patterns = vec![
             ("NUM", r"\d+(\.\d)*"),
+            ("CONDOP", r"=="),
             ("OP", r"[+*=]"),
             ("SEMI", r";"),
             ("PAREN_S", r"\("),
@@ -46,6 +47,7 @@ impl Lexer {
             }
             match typ.as_ref() {
                 "NUM" => tokens.push(Token::Num(val.parse::<u64>().expect("something went wrong parsing a number"))),
+                "CONDOP" => tokens.push(Token::CondOp(val)),
                 "OP" => tokens.push(Token::Op(val)),
                 "SEMI" => tokens.push(Token::Semi),
                 "IDEN" => tokens.push(Token::Ide(val)),

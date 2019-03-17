@@ -1,8 +1,8 @@
 int main() {
-    a = 1;
+    a = 77;
     b = 3;
-    if (1) {
-        a = a + 100;
+    if (a == 77) {
+        a = a + 24;
         b = b + 100;
     }
     return a + b;

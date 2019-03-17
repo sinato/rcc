@@ -151,18 +151,21 @@ impl Emitter {
             None => panic!("This block has no statements."),
         }
     }
+    fn emit_ast_condition_statement(&mut self, ast: AstConditionalStatement) -> IntValue {
+        let val = self.emit_ast_val(ast.condition_val);
+        let iden_val = self.emit_ast_ide(ast.condition_identifier);
+        self.builder.build_int_compare(IntPredicate::EQ, iden_val, val, "ifcond")
+    }
     fn emit_ast_if_statement(&mut self, ast: AstIfStatement, function: FunctionValue) -> (Option<IntValue>, Environment) {
         let mut statement_environment = self.variables.clone();
         let block = ast.block;
 
         let const_one = self.context.i32_type().const_int(1, false);
-        let cond = self.emit_ast_val(ast.condition_val);
-
-        let cond = self.builder.build_int_compare(IntPredicate::EQ, cond, const_one, "ifcond");
 
         let then_block = self.context.append_basic_block(&function, "then");
         let else_block = self.context.append_basic_block(&function, "else");
         let cont_block = self.context.append_basic_block(&function, "cont");
+        let cond = self.emit_ast_condition_statement(ast.condition_statement);
 
         self.builder.build_conditional_branch(cond, &then_block, &else_block);
         self.builder.position_at_end(&then_block);

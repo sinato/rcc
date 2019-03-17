@@ -15,7 +15,7 @@ impl AstFunction {
 pub enum AstStatement {
     Instruction(AstInstruction),
     CompoundStatement(AstCompoundStatement),
-    IfStatement(AstIfStatement)
+    IfStatement(AstIfStatement),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -38,8 +38,15 @@ pub enum AstCompoundStatement {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstIfStatement {
-    pub condition_val: AstVal,
+    pub condition_statement: AstConditionalStatement,
     pub block: Box<AstStatement>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstConditionalStatement {
+    pub condition_identifier: AstIde,
+    pub condition_operator: String,
+    pub condition_val: AstVal,
 }
 
 #[derive(Debug, PartialEq, Clone)]

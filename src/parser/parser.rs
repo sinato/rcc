@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{AstInstruction, AstIfStatement, AstCompoundStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstFunction};
+use crate::parser::ast::{AstInstruction, AstIfStatement, AstCompoundStatement, AstConditionalStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstFunction};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -141,15 +141,16 @@ fn parse_if_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatement, 
         None => panic!("Expected if token"),
     }
     tmp_tokens.reverse();
-    let condition_val = parse_condition(tmp_tokens);
+    let condition_statement = parse_condition(tmp_tokens);
 
     let (block, ret_tokens) = parse_compound_statement(tokens);
     let block = Box::new(block);
-    let ast_if = AstStatement::IfStatement(AstIfStatement{ condition_val, block });
+    let ast_if = AstStatement::IfStatement(AstIfStatement{ condition_statement, block });
     (ast_if, ret_tokens)
 }
 
-fn parse_condition(mut tokens: Tokens) -> AstVal {
+
+fn parse_condition(mut tokens: Tokens) -> AstConditionalStatement {
     // assertion
     match tokens.first() {
         Some(token) => match token {
@@ -170,9 +171,24 @@ fn parse_condition(mut tokens: Tokens) -> AstVal {
     tokens = tokens.split_off(1);
     tokens.reverse();
     tokens = tokens.split_off(1);
+    tokens.reverse();
 
     // parse
-    parse_expression_entry(tokens)
+    let token = tokens.pop_ide();
+    let condition_identifier = match token {
+        Some(identifier) => AstIde { ide: Token::Ide(identifier) } ,
+        None => panic!("Parse Error: Expect at least one token."),
+    };
+    let token = tokens.pop_condop();
+    let condition_operator = match token {
+        Some(op) => match op.as_ref() {
+            "==" => "==".to_string(), 
+            _ => panic!("Parse Error: Expect an equal operator."),
+        },
+        None => panic!("Parse Error: Expect at least one token."),
+    };
+    let condition_val = parse_expression_entry(tokens);
+    AstConditionalStatement{ condition_identifier, condition_operator, condition_val }
 }
 
 fn parse_statement(tokens: Tokens) -> AstStatement {

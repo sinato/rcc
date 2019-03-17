@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{AstInstruction, AstIfStatement, AstCompoundStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstNum, AstFunction, AstFin};
+use crate::parser::ast::{AstInstruction, AstIfStatement, AstCompoundStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstFunction};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -140,11 +140,39 @@ fn parse_if_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatement, 
         }
         None => panic!("Expected if token"),
     }
-    let condition_val = parse_expression_entry(tmp_tokens);
+    tmp_tokens.reverse();
+    let condition_val = parse_condition(tmp_tokens);
+
     let (block, ret_tokens) = parse_compound_statement(tokens);
     let block = Box::new(block);
     let ast_if = AstStatement::IfStatement(AstIfStatement{ condition_val, block });
     (ast_if, ret_tokens)
+}
+
+fn parse_condition(mut tokens: Tokens) -> AstVal {
+    // assertion
+    match tokens.first() {
+        Some(token) => match token {
+            Token::ParenS => (),
+            _ => panic!("Expected ParenS token"),
+        }
+        None => panic!("Expected ParenS token"),
+    }
+    match tokens.last() {
+        Some(token) => match token {
+            Token::ParenE => (),
+            _ => panic!("Expected ParenE token"),
+        }
+        None => panic!("Expected ParenE token"),
+    }
+    // trim
+    tokens.reverse();
+    tokens = tokens.split_off(1);
+    tokens.reverse();
+    tokens = tokens.split_off(1);
+
+    // parse
+    parse_expression_entry(tokens)
 }
 
 fn parse_statement(tokens: Tokens) -> AstStatement {
@@ -196,6 +224,7 @@ pub fn parser(tokens: Tokens) -> AstFunction{
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parser::ast::{AstFin, AstNum};
 
     fn get_astnode_num(num: u64) -> AstVal {
         AstVal::Fin(AstFin::Num(AstNum { num: Token::Num(num) }))

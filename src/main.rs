@@ -17,7 +17,7 @@ use parser::emitter::Emitter;
 /// statement            := [ instruction; | compound_statement | if_statement ]
 /// instruction          := [ binding | return ]
 /// compound_statement   := { (instruction;)* }
-/// if_statement         := IF val compound_statement
+/// if_statement         := IF (val) compound_statement
 /// binding              := IDENTIFIER = val
 /// return               := RETURN val
 /// val                  := [ fin | expression ]

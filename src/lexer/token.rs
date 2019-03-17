@@ -5,6 +5,8 @@ pub enum Token {
     Num(u64),
     Op(String),
     Ide(String),
+    ParenE,
+    ParenS,
     BlockE,
     BlockS,
     If,
@@ -22,12 +24,6 @@ impl Token {
         match self.clone() {
             Token::Op(op) => op,
             _ => panic!("Token Error: Expcet an operator token"),
-        }
-    }
-    pub fn get_ide(&self) -> String {
-        match self.clone() {
-            Token::Ide(ide) => ide,
-            _ => panic!("Token Error: Expcet an identifier token"),
         }
     }
 }
@@ -74,8 +70,18 @@ impl Tokens {
             None => None,
         }
     }
+    pub fn first(&self) -> Option<&Token> {
+        self.tokens.first()
+    }
+    pub fn last(&self) -> Option<&Token> {
+        self.tokens.last()
+    }
     pub fn pop(&mut self) -> Option<Token> {
         self.tokens.pop()
+    }
+    pub fn split_off(self, idx: usize) -> Tokens {
+        let tokens = self.tokens.clone().split_off(idx);
+        Tokens { tokens }
     }
     pub fn peak(&self) -> Option<Token> {
         self.clone().tokens.pop()

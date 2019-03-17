@@ -1,7 +1,7 @@
 int main() {
     a = 10;
     if 1 {
-        b = a + 23;
+        a = a + 23;
     }
-    return b;
+    return a;
 }

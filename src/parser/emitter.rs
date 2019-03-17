@@ -155,7 +155,7 @@ impl Emitter {
         let mut statement_environment = self.variables.clone();
         let block = ast.block;
 
-        let const_one = self.context.i32_type().const_int(0, false);
+        let const_one = self.context.i32_type().const_int(1, false);
         let cond = self.emit_ast_val(ast.condition_val);
 
         let cond = self.builder.build_int_compare(IntPredicate::EQ, cond, const_one, "ifcond");
@@ -167,8 +167,10 @@ impl Emitter {
         self.builder.build_conditional_branch(cond, &then_block, &else_block);
         self.builder.position_at_end(&then_block);
 
-        let (then_val, ret_env) = self.emit_ast_statement(*block, function);
-        let then_val = then_val.unwrap();
+        let (_, mut ret_env) = match *block {
+            AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
+            _ => panic!("this pattern is not implemented"),
+        };
         self.builder.build_unconditional_branch(&cont_block);
         self.builder.get_insert_block().unwrap();
 
@@ -177,16 +179,16 @@ impl Emitter {
         self.builder.get_insert_block().unwrap();
 
         self.builder.position_at_end(&cont_block);
-        let phi = self.builder.build_phi(self.context.i32_type(), "iftmp");
-
-        for (identifier, pointer) in ret_env.get_variables().into_iter() {
-            statement_environment.insert(identifier, pointer);
+        // IntValue ---> PhiValue -> IntValue
+        // IntValue _/
+        for key in ret_env.get_variables().keys() {
+            let val = self.variables.get(key).expect("");
+            let then_val = ret_env.get(key).expect("");
+            let phi_value = self.builder.build_phi(self.context.i32_type(), "phitmp");
+            phi_value.add_incoming(&[(then_val, &then_block), (val, &else_block)]);
+            statement_environment.insert(key.to_string(), phi_value.as_basic_value().into_int_value());
         }
-        phi.add_incoming(&[
-                         (&then_val, &then_block),
-                         (&const_one, &else_block),
-        ]);
-        (Some(phi.as_basic_value().into_int_value()), statement_environment)
+        (Some(const_one), statement_environment)
     }
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> (IntValue, Environment) {
         let mut statement_environment = Environment::new();

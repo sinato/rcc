@@ -108,14 +108,12 @@ fn test_variable() {
 }
 
 #[test]
-#[ignore]
 fn test_if_true() {
     let code = get_code("test_if_true");
     run(&code, "33");
 }
 
 #[test]
-#[ignore]
 fn test_if_false() {
     let code = get_code("test_if_false");
     run(&code, "1");

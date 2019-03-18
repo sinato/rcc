@@ -11,6 +11,7 @@ pub enum Token {
     BlockE,
     BlockS,
     If,
+    While,
     Ret,
     Semi,
 }

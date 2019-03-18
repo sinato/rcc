@@ -118,3 +118,9 @@ fn test_if_false() {
     let code = get_code("test_if_false");
     run(&code, "4");
 }
+
+#[test]
+fn test_while() {
+    let code = get_code("test_while");
+    run(&code, "11");
+}

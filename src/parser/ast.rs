@@ -16,6 +16,7 @@ pub enum AstStatement {
     Instruction(AstInstruction),
     CompoundStatement(AstCompoundStatement),
     IfStatement(AstIfStatement),
+    WhileStatement(AstWhileStatement)
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -38,6 +39,12 @@ pub enum AstCompoundStatement {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstIfStatement {
+    pub condition_statement: AstConditionalStatement,
+    pub block: Box<AstStatement>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstWhileStatement {
     pub condition_statement: AstConditionalStatement,
     pub block: Box<AstStatement>,
 }

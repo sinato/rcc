@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{AstInstruction, AstIfStatement, AstCompoundStatement, AstConditionalStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstFunction};
+use crate::parser::ast::{AstInstruction, AstIfStatement, AstCompoundStatement, AstConditionalStatement, AstWhileStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstFunction};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -149,6 +149,24 @@ fn parse_if_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatement, 
     (ast_if, ret_tokens)
 }
 
+fn parse_while_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatement, Tokens) {
+    tmp_tokens.reverse();
+    let first_token = tmp_tokens.pop();
+    match first_token {
+        Some(token) => match token {
+            Token::While => (),
+            _ => panic!("Expected while token"),
+        }
+        None => panic!("Expected while token"),
+    }
+    tmp_tokens.reverse();
+    let condition_statement = parse_condition(tmp_tokens);
+
+    let (block, ret_tokens) = parse_compound_statement(tokens);
+    let block = Box::new(block);
+    let ast = AstStatement::WhileStatement(AstWhileStatement{ condition_statement, block });
+    (ast, ret_tokens)
+}
 
 fn parse_condition(mut tokens: Tokens) -> AstConditionalStatement {
     // assertion
@@ -213,7 +231,11 @@ fn parse_function(tokens: Tokens) -> Vec<AstStatement> {
                 Token::BlockS => {
                     let (ret_statement, ret_tokens) = match tmp_tokens.len() {
                         0 => parse_compound_statement(Tokens{ tokens: tokens.clone() }),
-                        _ => parse_if_statement(Tokens{ tokens: tmp_tokens.clone() }, Tokens{ tokens: tokens.clone() }),
+                        _ => match tmp_tokens.first().unwrap() {
+                                Token::If => parse_if_statement(Tokens{ tokens: tmp_tokens.clone() }, Tokens{ tokens: tokens.clone() }),
+                                Token::While => parse_while_statement(Tokens{ tokens: tmp_tokens.clone() }, Tokens{ tokens: tokens.clone() }),
+                                _ => panic!("Parse Error: Unexpected pattern."),
+                        },
                     };
                     tmp_tokens.clear();
                     tokens = ret_tokens.tokens;

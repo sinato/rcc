@@ -20,6 +20,7 @@ impl Lexer {
             ("BLOCK_E", r"\}"),
             ("RET", r"return "),
             ("IF", r"if"),
+            ("WHILE", r"while"),
             ("IDEN", r"[a-z]+"),
         ];
         let re = make_regex(&token_patterns);
@@ -56,6 +57,7 @@ impl Lexer {
                 "BLOCK_S" => tokens.push(Token::BlockS),
                 "BLOCK_E" => tokens.push(Token::BlockE),
                 "IF" => tokens.push(Token::If),
+                "WHILE" => tokens.push(Token::While),
                 "RET" => tokens.push(Token::Ret),
                 _ => panic!("This is not an expected panic"),
             }

@@ -101,6 +101,7 @@ impl Emitter {
             AstStatement::Instruction(ast) => self.emit_ast_instruction(ast),
             AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
             AstStatement::IfStatement(ast) => self.emit_ast_if_statement(ast, function),
+            AstStatement::WhileStatement(ast) => self.emit_ast_while_statement(ast, function),
         };
         for (key, val) in ret_env.get_variables().into_iter() {
             self.variables.insert(key, val);
@@ -192,6 +193,29 @@ impl Emitter {
             statement_environment.insert(key.to_string(), phi_value.as_basic_value().into_int_value());
         }
         (Some(const_one), statement_environment)
+    }
+    fn emit_ast_while_statement(&mut self, ast: AstWhileStatement, function: FunctionValue) -> (Option<IntValue>, Environment) {
+        let block = ast.block;
+        let const_one = self.context.i32_type().const_int(1, false);
+
+        let loop_block = self.context.append_basic_block(&function, "loop");
+        let cont_block = self.context.append_basic_block(&function, "cont");
+        self.builder.build_unconditional_branch(&loop_block);
+
+        self.builder.position_at_end(&loop_block);
+        let (_, ret_env) = match *block {
+            AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
+            _ => panic!("this pattern is not implemented"),
+        };
+        for (key, val) in ret_env.get_variables().into_iter() {
+            self.variables.insert(key, val);
+        }
+
+        let cond = self.emit_ast_condition_statement(ast.condition_statement);
+        self.builder.build_conditional_branch(cond, &loop_block, &cont_block);
+
+        self.builder.position_at_end(&cont_block);
+        (Some(const_one), self.variables.clone())
     }
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> (IntValue, Environment) {
         let mut statement_environment = Environment::new();

@@ -14,10 +14,11 @@ use parser::emitter::Emitter;
 /// EBNF:
 /// program              := function
 /// function             := statement+
-/// statement            := [ instruction; | compound_statement | if_statement ]
+/// statement            := [ instruction; | compound_statement | if_statement | while_statement ]
 /// instruction          := [ binding | return ]
 /// compound_statement   := { (instruction;)* }
 /// if_statement         := IF (condition_statement) compound_statement
+/// while_statement      := WHILE (condition_statement) compound_statement
 /// condition_statement  := IDENTIFIER == val
 /// binding              := IDENTIFIER = val
 /// return               := RETURN val

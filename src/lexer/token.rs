@@ -28,6 +28,12 @@ impl Token {
             _ => panic!("Token Error: Expcet an operator token"),
         }
     }
+    pub fn get_ide(&self) -> String {
+        match self.clone() {
+            Token::Ide(ide) => ide,
+            _ => panic!("Token Error: Expcet an identifier token"),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -59,6 +65,7 @@ impl Tokens {
             Some(token) => match token {
                 Token::CondOp(op) => match op.as_ref() {
                     "==" => Some(op),
+                    "!=" => Some(op),
                     _ => panic!("Not implemented operator"),
                 },
                 _ => panic!("Expect a conditional operator token"),

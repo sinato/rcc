@@ -4,21 +4,22 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::IntPredicate;
-use inkwell::values::{IntValue, FunctionValue};
+use inkwell::AddressSpace;
+use inkwell::values::{IntValue, PointerValue, FunctionValue};
 use std::collections::HashMap;
 use std::path;
 
 #[derive(Debug, Clone)]
 struct Environment {
-    variables_stack: Vec<HashMap<String, IntValue>>
+    variables_stack: Vec<HashMap<String, PointerValue>>
 }
 impl Environment {
     fn new() -> Environment {
-        let env1: HashMap<String, IntValue> = HashMap::new();
+        let env1: HashMap<String, PointerValue> = HashMap::new();
         Environment{ variables_stack: vec![env1] }
     }
     fn push_env(&mut self) {
-        let env1: HashMap<String, IntValue> = HashMap::new();
+        let env1: HashMap<String, PointerValue> = HashMap::new();
         self.variables_stack.push(env1);
     } 
     fn pop_env(&mut self) {
@@ -27,10 +28,10 @@ impl Environment {
             None => panic!("Expect at least one environement.")
         }
     }
-    fn get(&mut self, s: &str) -> Option<&IntValue> {
+    fn get(&self, s: &str) -> Option<&PointerValue> {
         self.variables_stack[0].get(s)
     }
-    fn update_exists(&mut self, identifier: String, value: IntValue) -> Result<String, &str> {
+    fn update_exists(&mut self, identifier: String, value: PointerValue) -> Result<String, &str> {
         for variables in &mut self.variables_stack {
             if variables.contains_key(&identifier) {
                 variables.insert(identifier.clone(), value);
@@ -39,7 +40,7 @@ impl Environment {
         }
         Err("identifier not found")
     }
-    fn insert(&mut self, identifier: String, value: IntValue) {
+    fn insert(&mut self, identifier: String, value: PointerValue) {
         // We search the existing binding at first.
         // Declaration cannot be distinguished from definition yet
         // println!("$$$$insert {:?}", identifier);
@@ -52,7 +53,7 @@ impl Environment {
             },
         };
     }
-    fn get_variables(&self) -> HashMap<String, IntValue> {
+    fn get_variables(&self) -> HashMap<String, PointerValue> {
         self.variables_stack[0].clone()
     }
 }
@@ -152,10 +153,15 @@ impl Emitter {
             None => panic!("This block has no statements."),
         }
     }
+    // https://thedan64.github.io/inkwell/inkwell/enum.IntPredicate.html
     fn emit_ast_condition_statement(&mut self, ast: AstConditionalStatement) -> IntValue {
         let val = self.emit_ast_val(ast.condition_val);
         let iden_val = self.emit_ast_ide(ast.condition_identifier);
-        self.builder.build_int_compare(IntPredicate::EQ, iden_val, val, "ifcond")
+        match ast.condition_operator.as_ref() {
+            "==" => self.builder.build_int_compare(IntPredicate::EQ, iden_val, val, "ifcond"),
+            "!=" => self.builder.build_int_compare(IntPredicate::NE, iden_val, val, "ifcond"),
+            _ => panic!(format!("This operator is not implemented."),
+        }
     }
     fn emit_ast_if_statement(&mut self, ast: AstIfStatement, function: FunctionValue) -> (Option<IntValue>, Environment) {
         let mut statement_environment = self.variables.clone();
@@ -171,7 +177,7 @@ impl Emitter {
         self.builder.build_conditional_branch(cond, &then_block, &else_block);
         self.builder.position_at_end(&then_block);
 
-        let (_, mut ret_env) = match *block {
+        let (_, ret_env) = match *block {
             AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
             _ => panic!("this pattern is not implemented"),
         };
@@ -183,18 +189,21 @@ impl Emitter {
         self.builder.get_insert_block().unwrap();
 
         self.builder.position_at_end(&cont_block);
-        // IntValue ---> PhiValue -> IntValue
-        // IntValue _/
+        // PointerValue -> IntValue ---> PhiValue -> IntValue -> PointerValue
+        // PointerValue -> IntValue _/
         for key in ret_env.get_variables().keys() {
-            let val = self.variables.get(key).expect("");
-            let then_val = ret_env.get(key).expect("");
-            let phi_value = self.builder.build_phi(self.context.i32_type(), "phitmp");
-            phi_value.add_incoming(&[(then_val, &then_block), (val, &else_block)]);
-            statement_environment.insert(key.to_string(), phi_value.as_basic_value().into_int_value());
+            let alloca_val = self.variables.get(key).expect("");
+            let alloca_then_val = ret_env.get(key).expect("");
+
+            let alloca_phi = self.builder.build_phi(self.context.i32_type().ptr_type(AddressSpace::Generic), "phitmp");
+            alloca_phi.add_incoming(&[(alloca_then_val, &then_block), (alloca_val, &else_block)]);
+            let alloca_phi = alloca_phi.as_basic_value().into_pointer_value();
+            statement_environment.insert(key.to_string(), alloca_phi);
         }
         (Some(const_one), statement_environment)
     }
     fn emit_ast_while_statement(&mut self, ast: AstWhileStatement, function: FunctionValue) -> (Option<IntValue>, Environment) {
+        let mut statement_environment = self.variables.clone();
         let block = ast.block;
         let const_one = self.context.i32_type().const_int(1, false);
 
@@ -208,21 +217,25 @@ impl Emitter {
             _ => panic!("this pattern is not implemented"),
         };
         for (key, val) in ret_env.get_variables().into_iter() {
-            self.variables.insert(key, val);
+            statement_environment.insert(key, val);
         }
-
-        let cond = self.emit_ast_condition_statement(ast.condition_statement);
+        let cond = self.emit_ast_condition_statement(ast.condition_statement.clone());
         self.builder.build_conditional_branch(cond, &loop_block, &cont_block);
 
         self.builder.position_at_end(&cont_block);
-        (Some(const_one), self.variables.clone())
+        (Some(const_one), statement_environment)
     }
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> (IntValue, Environment) {
         let mut statement_environment = Environment::new();
         let identifier = ast_binding.ide.get_identifier();
 
+        let alloca = match self.variables.get(&identifier) {
+            Some(alloca) => *alloca,
+            None => self.builder.build_alloca(self.context.i32_type(), &identifier),
+        };
         let val = self.emit_ast_val(ast_binding.val);
-        statement_environment.insert(identifier, val);
+        self.builder.build_store(alloca, val);
+        statement_environment.insert(identifier, alloca);
         (val, statement_environment)
     }
     fn emit_ast_return(&mut self, ast_ret: AstReturn) -> (IntValue, Environment) {
@@ -257,10 +270,13 @@ impl Emitter {
         self.context.i32_type().const_int(ast_num.num.get_num(), false)
     }
     fn emit_ast_ide(&mut self, ast_ide: AstIde) -> IntValue {
-        let val = self.variables.get(&ast_ide.get_identifier());
-        match val {
-            Some(val) => *val,
+        self.builder.build_load(*self.variables.get(&ast_ide.get_identifier()).unwrap(), &ast_ide.ide.get_ide()).into_int_value()
+        /*
+        let alloca = self.variables.get(&ast_ide.get_identifier());
+        match alloca {
+            Some(alloca) => self.builder.build_load(*alloca, &ast_ide.ide.get_ide()).into_int_value(),
             None => panic!("Emit Error: Undeclared variable."),
         }
+        */
     }
 }

@@ -201,6 +201,7 @@ fn parse_condition(mut tokens: Tokens) -> AstConditionalStatement {
     let condition_operator = match token {
         Some(op) => match op.as_ref() {
             "==" => "==".to_string(), 
+            "!=" => "!=".to_string(), 
             _ => panic!("Parse Error: Expect an equal operator."),
         },
         None => panic!("Parse Error: Expect at least one token."),

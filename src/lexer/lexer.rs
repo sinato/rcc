@@ -11,7 +11,7 @@ impl Lexer {
     pub fn new() -> Lexer {
         let token_patterns = vec![
             ("NUM", r"\d+(\.\d)*"),
-            ("CONDOP", r"=="),
+            ("CONDOP", r"==|!="),
             ("OP", r"[+*=]"),
             ("SEMI", r";"),
             ("PAREN_S", r"\("),

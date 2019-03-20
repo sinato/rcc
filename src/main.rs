@@ -13,18 +13,21 @@ use parser::emitter::Emitter;
 
 /// EBNF:
 /// program              := function
-/// function             := statement+
+/// function             := "int" "main" "{" statement+ "}"
 /// statement            := [ instruction; | compound_statement | if_statement | while_statement ]
 /// instruction          := [ binding | return ]
-/// compound_statement   := { (instruction;)* }
-/// if_statement         := IF (condition_statement) compound_statement
-/// while_statement      := WHILE (condition_statement) compound_statement
-/// condition_statement  := IDENTIFIER == val
-/// binding              := IDENTIFIER = val
-/// return               := RETURN val
+/// compound_statement   := "{" {instruction";"} "}"
+/// if_statement         := "if" "(" condition_statement ")" compound_statement
+/// while_statement      := "while" "(" condition_statement ")" compound_statement
+/// condition_statement  := identifier condition_op val
+/// return               := "return" val
 /// val                  := [ fin | expression ]
-/// expression           := fin (op fin)+
-/// fin                  := NUMBER | IDENTIFIER
+/// fin                  := number | identifier
+/// expression           := fin {op fin}
+/// op                   := [ "+" | "*" | "=" ]
+/// condition_op         := "==" | "!="
+/// number               := \d+(\.\d)*
+/// identifier           := [a-z]+
 fn compiler(code: String) {
     let lexer = Lexer::new();
     let tokens = lexer.lex(code);

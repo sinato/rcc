@@ -62,7 +62,8 @@ pub struct Emitter {
     context: Context,
     builder: Builder,
     module: Module,
-    variables: Environment
+    variables: Environment,
+    functions: HashMap<String, FunctionValue>
 }
 impl Emitter {
     pub fn new() -> Emitter {
@@ -70,12 +71,14 @@ impl Emitter {
         let module = context.create_module("my_module");
         let builder = context.create_builder();
         let variables = Environment::new();
+        let functions = HashMap::new();
 
         Emitter {
             context,
             builder, 
             module,
-            variables
+            variables,
+            functions,
         }
     }
     pub fn print_to_file(&self, filename: &str) {
@@ -92,6 +95,7 @@ impl Emitter {
     fn emit_function(&mut self, function: AstFunction) {
         let identifier = function.identifier;
         let func = self.module.add_function(&identifier, self.context.i32_type().fn_type(&[], false), None);
+        self.functions.insert(identifier, func);
         let basic_block = self.context.append_basic_block(&func, "entry");
         self.builder.position_at_end(&basic_block);
 

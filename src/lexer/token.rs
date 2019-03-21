@@ -87,7 +87,7 @@ impl Tokens {
             Some(token) => match token {
                 Token::Ide(_) | Token::Num(_) => Some(token),
                 _ => panic!("Expect an identifier or number token"),
-            }
+            },
             None => None,
         }
     }
@@ -114,4 +114,3 @@ impl Tokens {
         self.tokens
     }
 }
-

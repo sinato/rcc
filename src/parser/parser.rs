@@ -1,5 +1,9 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{AstProgram, AstInstruction, AstIfStatement, AstCompoundStatement, AstConditionalStatement, AstWhileStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstFunction};
+use crate::parser::ast::{
+    AstBinding, AstCompoundStatement, AstConditionalStatement, AstExp, AstFunction, AstIde,
+    AstIfStatement, AstInstruction, AstOp, AstProgram, AstReturn, AstStatement, AstVal,
+    AstWhileStatement,
+};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -66,20 +70,24 @@ fn parse_expression_entry(mut tokens: Tokens) -> AstVal {
 fn parse_return(mut tokens: Tokens) -> AstInstruction {
     // TODO: implement validation?
     tokens.pop();
-    let ast = AstReturn{  val: parse_expression_entry(tokens)};
+    let ast = AstReturn {
+        val: parse_expression_entry(tokens),
+    };
     AstInstruction::Return(ast)
 }
 
 fn parse_binding(mut tokens: Tokens) -> AstInstruction {
     let token = tokens.pop_ide();
     let ide = match token {
-        Some(identifier) => AstIde { ide: Token::Ide(identifier) } ,
+        Some(identifier) => AstIde {
+            ide: Token::Ide(identifier),
+        },
         None => panic!("Parse Error: Expect at least one token."),
     };
     let token = tokens.pop_op();
     match token {
         Some(op) => match op.as_ref() {
-            "=" => (), 
+            "=" => (),
             _ => panic!("Parse Error: Expect an equal operator."),
         },
         None => panic!("Parse Error: Expect at least one token."),
@@ -90,7 +98,9 @@ fn parse_binding(mut tokens: Tokens) -> AstInstruction {
 
 fn parse_instruction(mut tokens: Tokens) -> AstInstruction {
     tokens.reverse();
-    let token = tokens.peak().expect("Parse Error: Expect at least one token.");
+    let token = tokens
+        .peak()
+        .expect("Parse Error: Expect at least one token.");
     match token {
         Token::Ide(_) => parse_binding(tokens),
         Token::Ret => parse_return(tokens),
@@ -116,18 +126,23 @@ fn parse_compound_statement(tokens: Tokens) -> (AstStatement, Tokens) {
     for token in compound_tokens {
         match token {
             Token::Semi => {
-                let t = Tokens { tokens: tmp_tokens.clone() };
+                let t = Tokens {
+                    tokens: tmp_tokens.clone(),
+                };
                 let instruction = parse_instruction(t);
                 instructions.push(instruction);
                 tmp_tokens.clear();
-            },
+            }
             _ => tmp_tokens.push(token),
         }
     }
     if tmp_tokens.len() != 0 {
         panic!("Parse Error: Expected the last semicolon, but not found.");
     }
-    (AstStatement::CompoundStatement(AstCompoundStatement::Instructions(instructions)), Tokens{tokens})
+    (
+        AstStatement::CompoundStatement(AstCompoundStatement::Instructions(instructions)),
+        Tokens { tokens },
+    )
 }
 
 fn parse_if_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatement, Tokens) {
@@ -137,7 +152,7 @@ fn parse_if_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatement, 
         Some(token) => match token {
             Token::If => (),
             _ => panic!("Expected if token"),
-        }
+        },
         None => panic!("Expected if token"),
     }
     tmp_tokens.reverse();
@@ -145,7 +160,10 @@ fn parse_if_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatement, 
 
     let (block, ret_tokens) = parse_compound_statement(tokens);
     let block = Box::new(block);
-    let ast_if = AstStatement::IfStatement(AstIfStatement{ condition_statement, block });
+    let ast_if = AstStatement::IfStatement(AstIfStatement {
+        condition_statement,
+        block,
+    });
     (ast_if, ret_tokens)
 }
 
@@ -156,7 +174,7 @@ fn parse_while_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatemen
         Some(token) => match token {
             Token::While => (),
             _ => panic!("Expected while token"),
-        }
+        },
         None => panic!("Expected while token"),
     }
     tmp_tokens.reverse();
@@ -164,7 +182,10 @@ fn parse_while_statement(mut tmp_tokens: Tokens, tokens: Tokens) -> (AstStatemen
 
     let (block, ret_tokens) = parse_compound_statement(tokens);
     let block = Box::new(block);
-    let ast = AstStatement::WhileStatement(AstWhileStatement{ condition_statement, block });
+    let ast = AstStatement::WhileStatement(AstWhileStatement {
+        condition_statement,
+        block,
+    });
     (ast, ret_tokens)
 }
 
@@ -174,14 +195,14 @@ fn parse_condition(mut tokens: Tokens) -> AstConditionalStatement {
         Some(token) => match token {
             Token::ParenS => (),
             _ => panic!("Expected ParenS token"),
-        }
+        },
         None => panic!("Expected ParenS token"),
     }
     match tokens.last() {
         Some(token) => match token {
             Token::ParenE => (),
             _ => panic!("Expected ParenE token"),
-        }
+        },
         None => panic!("Expected ParenE token"),
     }
     // trim
@@ -194,26 +215,31 @@ fn parse_condition(mut tokens: Tokens) -> AstConditionalStatement {
     // parse
     let token = tokens.pop_ide();
     let condition_identifier = match token {
-        Some(identifier) => AstIde { ide: Token::Ide(identifier) } ,
+        Some(identifier) => AstIde {
+            ide: Token::Ide(identifier),
+        },
         None => panic!("Parse Error: Expect at least one token."),
     };
     let token = tokens.pop_condop();
     let condition_operator = match token {
         Some(op) => match op.as_ref() {
-            "==" => "==".to_string(), 
-            "!=" => "!=".to_string(), 
+            "==" => "==".to_string(),
+            "!=" => "!=".to_string(),
             _ => panic!("Parse Error: Expect an equal operator."),
         },
         None => panic!("Parse Error: Expect at least one token."),
     };
     let condition_val = parse_expression_entry(tokens);
-    AstConditionalStatement{ condition_identifier, condition_operator, condition_val }
+    AstConditionalStatement {
+        condition_identifier,
+        condition_operator,
+        condition_val,
+    }
 }
 
 fn parse_statement(tokens: Tokens) -> AstStatement {
     AstStatement::Instruction(parse_instruction(tokens))
 }
-
 
 fn parse_function_body(tokens: Tokens) -> Vec<AstStatement> {
     let mut tokens: Vec<Token> = tokens.get_tokens();
@@ -223,20 +249,38 @@ fn parse_function_body(tokens: Tokens) -> Vec<AstStatement> {
     loop {
         let token = tokens.pop();
         match token {
-            Some(token) => match token{
+            Some(token) => match token {
                 Token::Semi => {
-                    let t = Tokens { tokens: tmp_tokens.clone() };
+                    let t = Tokens {
+                        tokens: tmp_tokens.clone(),
+                    };
                     let statement = parse_statement(t);
                     statements.push(statement);
                     tmp_tokens.clear();
-                },
+                }
                 Token::BlockS => {
                     let (ret_statement, ret_tokens) = match tmp_tokens.len() {
-                        0 => parse_compound_statement(Tokens{ tokens: tokens.clone() }),
+                        0 => parse_compound_statement(Tokens {
+                            tokens: tokens.clone(),
+                        }),
                         _ => match tmp_tokens.first().unwrap() {
-                                Token::If => parse_if_statement(Tokens{ tokens: tmp_tokens.clone() }, Tokens{ tokens: tokens.clone() }),
-                                Token::While => parse_while_statement(Tokens{ tokens: tmp_tokens.clone() }, Tokens{ tokens: tokens.clone() }),
-                                _ => panic!("Parse Error: Unexpected pattern."),
+                            Token::If => parse_if_statement(
+                                Tokens {
+                                    tokens: tmp_tokens.clone(),
+                                },
+                                Tokens {
+                                    tokens: tokens.clone(),
+                                },
+                            ),
+                            Token::While => parse_while_statement(
+                                Tokens {
+                                    tokens: tmp_tokens.clone(),
+                                },
+                                Tokens {
+                                    tokens: tokens.clone(),
+                                },
+                            ),
+                            _ => panic!("Parse Error: Unexpected pattern."),
                         },
                     };
                     tmp_tokens.clear();
@@ -266,11 +310,13 @@ fn parse_function(tokens: Tokens) -> AstProgram {
             Token::BlockE => {
                 block_s_cnt -= 1;
                 if block_s_cnt == 0 {
-                    let tokens = Tokens{ tokens: function_tokens.clone() };
+                    let tokens = Tokens {
+                        tokens: function_tokens.clone(),
+                    };
                     function_tokens.clear();
                     function_tokens_list.push(tokens);
                 }
-            },
+            }
             Token::BlockS => block_s_cnt += 1,
             _ => (),
         }
@@ -279,28 +325,29 @@ fn parse_function(tokens: Tokens) -> AstProgram {
     for tokens_i in function_tokens_list.into_iter() {
         // println!("++++++++ {:?}", tokens_i);
         let mut tokens = tokens_i.clone();
-        tokens.pop();  // BlockE
+        tokens.pop(); // BlockE
         tokens.reverse();
-        let identifier = match tokens.pop().unwrap(){
+        let identifier = match tokens.pop().unwrap() {
             Token::Ide(ide) => ide,
             _ => panic!("Unexpected token."),
-        };  // Ide()
-        tokens.pop();  // ParenS
-        tokens.pop();  // ParenE
-        tokens.pop();  // BlockS
+        }; // Ide()
+        tokens.pop(); // ParenS
+        tokens.pop(); // ParenE
+        tokens.pop(); // BlockS
         tokens.reverse();
         // println!("******** {:?}", tokens);
         let statements = parse_function_body(tokens);
         debug!("INSTRUCTIONS: {:?}", statements);
         ast_functions.push(AstFunction::new(identifier, statements));
     }
-    AstProgram{ functions: ast_functions }
+    AstProgram {
+        functions: ast_functions,
+    }
 }
 
-pub fn parser(tokens: Tokens) -> AstProgram{
+pub fn parser(tokens: Tokens) -> AstProgram {
     parse_function(tokens)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -308,19 +355,33 @@ mod tests {
     use crate::parser::ast::{AstFin, AstNum};
 
     fn get_astnode_num(num: u64) -> AstVal {
-        AstVal::Fin(AstFin::Num(AstNum { num: Token::Num(num) }))
+        AstVal::Fin(AstFin::Num(AstNum {
+            num: Token::Num(num),
+        }))
     }
 
     #[test]
     fn test_parse_compound_statement() {
-        let ast_return = AstReturn { val: AstVal::Fin(AstFin::Num(AstNum{ num: Token::Num(33) })) };
+        let ast_return = AstReturn {
+            val: AstVal::Fin(AstFin::Num(AstNum {
+                num: Token::Num(33),
+            })),
+        };
         let expect_instructions = vec![AstInstruction::Return(ast_return)];
         let expect_ast = AstCompoundStatement::Instructions(expect_instructions);
         let expect_ast = AstStatement::CompoundStatement(expect_ast);
-        let expect_tokens = Tokens { tokens: vec![Token::Num(22)] };
+        let expect_tokens = Tokens {
+            tokens: vec![Token::Num(22)],
+        };
         let expect = (expect_ast, expect_tokens);
 
-        let mut tokens = vec![Token::Ret, Token::Num(33), Token::Semi, Token::BlockE, Token::Num(22)];
+        let mut tokens = vec![
+            Token::Ret,
+            Token::Num(33),
+            Token::Semi,
+            Token::BlockE,
+            Token::Num(22),
+        ];
         tokens.reverse();
         let tokens = Tokens { tokens };
         assert_eq!(parse_compound_statement(tokens), expect);
@@ -328,7 +389,9 @@ mod tests {
 
     #[test]
     fn test_parser_num() {
-        let expect = AstInstruction::Return(AstReturn{ val: get_astnode_num(2434) });
+        let expect = AstInstruction::Return(AstReturn {
+            val: get_astnode_num(2434),
+        });
         let tokens = vec![Token::Ret, Token::Num(2434)];
         let tokens = Tokens { tokens };
         let actual = parse_instruction(tokens);
@@ -354,7 +417,12 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_parser_exp_illegal_tokens() {
-        let tokens = vec![Token::Ret, Token::Num(2434), Token::Num(2434), Token::Num(2434)];
+        let tokens = vec![
+            Token::Ret,
+            Token::Num(2434),
+            Token::Num(2434),
+            Token::Num(2434),
+        ];
         let tokens = Tokens { tokens };
         parse_instruction(tokens);
     }
@@ -392,8 +460,15 @@ mod tests {
             op: Token::Op(String::from("+")),
         };
         let rhs = Box::new(get_astnode_num(20));
-        let expect = AstInstruction::Return(AstReturn{ val:  AstVal::Exp(AstExp{ lhs, op, rhs })});
-        let tokens = vec![Token::Ret, Token::Num(10), Token::Op(String::from("+")), Token::Num(20)];
+        let expect = AstInstruction::Return(AstReturn {
+            val: AstVal::Exp(AstExp { lhs, op, rhs }),
+        });
+        let tokens = vec![
+            Token::Ret,
+            Token::Num(10),
+            Token::Op(String::from("+")),
+            Token::Num(20),
+        ];
         let tokens = Tokens { tokens };
         let actual = parse_instruction(tokens);
 
@@ -417,7 +492,9 @@ mod tests {
             op: Token::Op(String::from("+")),
         };
         // make expected ast
-        let expect = AstInstruction::Return(AstReturn{ val: AstVal::Exp(AstExp { lhs, op, rhs })});
+        let expect = AstInstruction::Return(AstReturn {
+            val: AstVal::Exp(AstExp { lhs, op, rhs }),
+        });
 
         let tokens = vec![
             Token::Ret,

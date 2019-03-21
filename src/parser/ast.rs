@@ -11,7 +11,10 @@ pub struct AstFunction {
 }
 impl AstFunction {
     pub fn new(identifier: String, statements: Vec<AstStatement>) -> AstFunction {
-        AstFunction { identifier, statements }
+        AstFunction {
+            identifier,
+            statements,
+        }
     }
 }
 
@@ -20,7 +23,7 @@ pub enum AstStatement {
     Instruction(AstInstruction),
     CompoundStatement(AstCompoundStatement),
     IfStatement(AstIfStatement),
-    WhileStatement(AstWhileStatement)
+    WhileStatement(AstWhileStatement),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -81,7 +84,7 @@ impl AstVal {
         match token {
             Token::Num(num) => AstVal::Fin(AstFin::new_from_num_token(Token::Num(num))),
             Token::Ide(ide) => AstVal::Fin(AstFin::new_from_ide_token(Token::Ide(ide))),
-            _ => panic!("Unexpected")
+            _ => panic!("Unexpected"),
         }
     }
 }

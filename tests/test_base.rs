@@ -1,6 +1,6 @@
-use std::process::Command;
-use std::io::prelude::*;
 use std::fs::File;
+use std::io::prelude::*;
+use std::process::Command;
 
 fn run(input: &str, expect: &str) {
     // compile
@@ -25,7 +25,8 @@ fn get_code(filename: &str) -> String {
     let filename = String::from("./tests/resources/") + filename;
     let mut f = File::open(filename).expect("file not found");
     let mut contents = String::new();
-    f.read_to_string(&mut contents).expect("somethig went wrong reading the file");
+    f.read_to_string(&mut contents)
+        .expect("somethig went wrong reading the file");
     contents
 }
 

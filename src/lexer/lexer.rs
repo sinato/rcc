@@ -1,6 +1,6 @@
-use regex::Regex;
-use log::debug;
 use crate::lexer::token::*;
+use log::debug;
+use regex::Regex;
 
 pub struct Lexer {
     re: Regex,
@@ -44,7 +44,10 @@ impl Lexer {
                 }
             }
             match typ.as_ref() {
-                "NUM" => tokens.push(Token::Num(val.parse::<u64>().expect("something went wrong parsing a number"))),
+                "NUM" => tokens.push(Token::Num(
+                    val.parse::<u64>()
+                        .expect("something went wrong parsing a number"),
+                )),
                 "CONDOP" => tokens.push(Token::CondOp(val)),
                 "OP" => tokens.push(Token::Op(val)),
                 "SEMI" => tokens.push(Token::Semi),
@@ -114,7 +117,12 @@ mod tests {
         let lexer = get_lexer();
         let code = String::from("abc = 10;");
         let expect = Tokens {
-            tokens: vec![Token::Ide(String::from("abc")), Token::Op(String::from("=")), Token::Num(10), Token::Semi],
+            tokens: vec![
+                Token::Ide(String::from("abc")),
+                Token::Op(String::from("=")),
+                Token::Num(10),
+                Token::Semi,
+            ],
         };
         assert_eq!(lexer.tokenize(code), expect);
     }
@@ -123,7 +131,15 @@ mod tests {
     fn test_lex_expression() {
         let lexer = get_lexer();
         let code = String::from("      10 + 20;\n    100");
-        let expect = Tokens{ tokens:  vec![Token::Num(10), Token::Op(String::from("+")), Token::Num(20), Token::Semi, Token::Num(100)] };
+        let expect = Tokens {
+            tokens: vec![
+                Token::Num(10),
+                Token::Op(String::from("+")),
+                Token::Num(20),
+                Token::Semi,
+                Token::Num(100),
+            ],
+        };
         assert_eq!(lexer.lex(code), expect);
     }
 }

@@ -1,15 +1,15 @@
 extern crate env_logger;
 extern crate inkwell;
-extern crate regex;
 extern crate log;
+extern crate regex;
 
 use std::{env, process};
 
 mod lexer;
 use lexer::lexer::Lexer;
 mod parser;
-use parser::parser::parser;
 use parser::emitter::Emitter;
+use parser::parser::parser;
 
 /// EBNF:
 /// program              := function

@@ -214,7 +214,8 @@ fn parse_statement(tokens: Tokens) -> AstStatement {
     AstStatement::Instruction(parse_instruction(tokens))
 }
 
-fn parse_function(tokens: Tokens) -> Vec<AstStatement> {
+
+fn parse_function_body(tokens: Tokens) -> Vec<AstStatement> {
     let mut tokens: Vec<Token> = tokens.get_tokens();
     tokens.reverse();
     let mut statements: Vec<AstStatement> = Vec::new();
@@ -253,10 +254,22 @@ fn parse_function(tokens: Tokens) -> Vec<AstStatement> {
     statements
 }
 
-pub fn parser(tokens: Tokens) -> AstFunction{
-    let statements = parse_function(tokens);
+fn parse_function(mut tokens: Tokens) -> AstFunction {
+    tokens.pop();  // BlockE
+    tokens.reverse();
+    tokens.pop();  // Ide()
+    tokens.pop();  // ParenS
+    tokens.pop();  // ParenE
+    tokens.pop();  // BlockS
+    tokens.reverse();
+    println!("{:?}", tokens);
+    let statements = parse_function_body(tokens);
     debug!("INSTRUCTIONS: {:?}", statements);
     AstFunction::new(statements)
+}
+
+pub fn parser(tokens: Tokens) -> AstFunction{
+    parse_function(tokens)
 }
 
 
@@ -282,14 +295,6 @@ mod tests {
         tokens.reverse();
         let tokens = Tokens { tokens };
         assert_eq!(parse_compound_statement(tokens), expect);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_parse_instruction_illegal() {
-        let tokens = vec![Token::Ret, Token::Num(10), Token::Op(String::from("+")), Token::Num(10)];
-        let tokens  = Tokens { tokens };
-        parse_function(tokens);
     }
 
     #[test]

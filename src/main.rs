@@ -13,7 +13,7 @@ use parser::emitter::Emitter;
 
 /// EBNF:
 /// program              := function
-/// function             := "int" "main" "{" statement+ "}"
+/// function             := "int" identifier "()" "{" statement+ "}"
 /// statement            := [ instruction; | compound_statement | if_statement | while_statement ]
 /// instruction          := [ binding | return ]
 /// compound_statement   := "{" {instruction";"} "}"

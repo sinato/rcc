@@ -18,6 +18,7 @@ impl Lexer {
             ("PAREN_E", r"\)"),
             ("BLOCK_S", r"\{"),
             ("BLOCK_E", r"\}"),
+            ("INT", r"int"),
             ("RET", r"return "),
             ("IF", r"if"),
             ("WHILE", r"while"),
@@ -29,12 +30,8 @@ impl Lexer {
         Lexer { re, names }
     }
     pub fn lex(&self, code: String) -> Tokens {
-        let code = self.strip_mock_main(code);
-        self.tokenize(code)
-    }
-    fn strip_mock_main(&self, code: String) -> String {
-        let code = code.trim_start_matches("int main() {\n");
-        code.trim_end_matches("\n}\n").to_string()
+        let tokens = self.tokenize(code);
+        tokens
     }
     fn tokenize(&self, code: String) -> Tokens {
         let mut tokens: Vec<Token> = Vec::new();
@@ -56,6 +53,7 @@ impl Lexer {
                 "PAREN_E" => tokens.push(Token::ParenE),
                 "BLOCK_S" => tokens.push(Token::BlockS),
                 "BLOCK_E" => tokens.push(Token::BlockE),
+                "INT" => (),
                 "IF" => tokens.push(Token::If),
                 "WHILE" => tokens.push(Token::While),
                 "RET" => tokens.push(Token::Ret),
@@ -84,19 +82,9 @@ fn get_names<'a, 'b>(token_patterns: &Vec<(&'a str, &'b str)>) -> Vec<&'a str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::prelude::*;
-    use std::fs::File;
 
     fn get_lexer() -> Lexer {
         Lexer::new()
-    }
-
-    fn get_code(filename: &str) -> String {
-        let filename = String::from("./tests/resources/") + filename;
-        let mut f = File::open(filename).expect("file not found");
-        let mut contents = String::new();
-        f.read_to_string(&mut contents).expect("somethig went wrong reading the file");
-        contents
     }
 
     #[test]
@@ -129,15 +117,6 @@ mod tests {
             tokens: vec![Token::Ide(String::from("abc")), Token::Op(String::from("=")), Token::Num(10), Token::Semi],
         };
         assert_eq!(lexer.tokenize(code), expect);
-    }
-
-    #[test]
-    fn test_strip_mock_main() {
-        let lexer = get_lexer();
-        let code = get_code("test_one_num");
-        let code = lexer.strip_mock_main(code);
-        let expect = String::from("    return 10;");
-        assert_eq!(code, expect);
     }
 
     #[test]

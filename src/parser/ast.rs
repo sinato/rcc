@@ -1,6 +1,9 @@
 use crate::lexer::token::Token;
 use std::fmt;
 
+pub struct AstProgram {
+    pub functions: Vec<AstFunction>,
+}
 
 pub struct AstFunction {
     pub identifier: String,

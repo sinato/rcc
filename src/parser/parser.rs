@@ -1,5 +1,5 @@
 use crate::lexer::token::{Token, Tokens};
-use crate::parser::ast::{AstInstruction, AstIfStatement, AstCompoundStatement, AstConditionalStatement, AstWhileStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstFunction};
+use crate::parser::ast::{AstProgram, AstInstruction, AstIfStatement, AstCompoundStatement, AstConditionalStatement, AstWhileStatement, AstStatement, AstReturn, AstVal, AstOp, AstIde, AstBinding, AstExp, AstFunction};
 use log::debug;
 
 fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
@@ -254,7 +254,7 @@ fn parse_function_body(tokens: Tokens) -> Vec<AstStatement> {
     statements
 }
 
-fn parse_function(tokens: Tokens) -> AstFunction {
+fn parse_function(tokens: Tokens) -> AstProgram {
     let mut function_tokens_list: Vec<Tokens> = Vec::new();
     let mut function_tokens: Vec<Token> = Vec::new();
     let tokens: Vec<Token> = tokens.get_tokens();
@@ -294,10 +294,10 @@ fn parse_function(tokens: Tokens) -> AstFunction {
         debug!("INSTRUCTIONS: {:?}", statements);
         ast_functions.push(AstFunction::new(identifier, statements));
     }
-    ast_functions.pop().unwrap()
+    AstProgram{ functions: ast_functions }
 }
 
-pub fn parser(tokens: Tokens) -> AstFunction{
+pub fn parser(tokens: Tokens) -> AstProgram{
     parse_function(tokens)
 }
 

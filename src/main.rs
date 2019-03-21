@@ -31,10 +31,10 @@ use parser::emitter::Emitter;
 fn compiler(code: String) {
     let lexer = Lexer::new();
     let tokens = lexer.lex(code);
-    let statements = parser(tokens);
+    let ast = parser(tokens);
 
     let mut emitter = Emitter::new();
-    emitter.emit(statements);
+    emitter.emit(ast);
     emitter.print_to_file("compiled.ll");
 }
 

@@ -81,8 +81,13 @@ impl Emitter {
     pub fn print_to_file(&self, filename: &str) {
         let _ = self.module.print_to_file(path::Path::new(filename));
     }
-    pub fn emit(&mut self, function: AstFunction) {
-        self.emit_function(function)
+    pub fn emit(&mut self, program: AstProgram) {
+        self.emit_program(program)
+    }
+    fn emit_program(&mut self, program: AstProgram) {
+        for function in program.functions {
+            self.emit_function(function)
+        }
     }
     fn emit_function(&mut self, function: AstFunction) {
         let identifier = function.identifier;

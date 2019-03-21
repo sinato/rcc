@@ -3,11 +3,12 @@ use std::fmt;
 
 
 pub struct AstFunction {
+    pub identifier: String,
     pub statements: Vec<AstStatement>,
 }
 impl AstFunction {
-    pub fn new(statements: Vec<AstStatement>) -> AstFunction {
-        AstFunction { statements }
+    pub fn new(identifier: String, statements: Vec<AstStatement>) -> AstFunction {
+        AstFunction { identifier, statements }
     }
 }
 

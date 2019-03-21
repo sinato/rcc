@@ -85,7 +85,8 @@ impl Emitter {
         self.emit_function(function)
     }
     fn emit_function(&mut self, function: AstFunction) {
-        let func = self.module.add_function("main", self.context.i32_type().fn_type(&[], false), None);
+        let identifier = function.identifier;
+        let func = self.module.add_function(&identifier, self.context.i32_type().fn_type(&[], false), None);
         let basic_block = self.context.append_basic_block(&func, "entry");
         self.builder.position_at_end(&basic_block);
 

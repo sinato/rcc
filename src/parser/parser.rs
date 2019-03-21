@@ -254,18 +254,47 @@ fn parse_function_body(tokens: Tokens) -> Vec<AstStatement> {
     statements
 }
 
-fn parse_function(mut tokens: Tokens) -> AstFunction {
-    tokens.pop();  // BlockE
-    tokens.reverse();
-    tokens.pop();  // Ide()
-    tokens.pop();  // ParenS
-    tokens.pop();  // ParenE
-    tokens.pop();  // BlockS
-    tokens.reverse();
-    println!("{:?}", tokens);
-    let statements = parse_function_body(tokens);
-    debug!("INSTRUCTIONS: {:?}", statements);
-    AstFunction::new(statements)
+fn parse_function(tokens: Tokens) -> AstFunction {
+    let mut function_tokens_list: Vec<Tokens> = Vec::new();
+    let mut function_tokens: Vec<Token> = Vec::new();
+    let tokens: Vec<Token> = tokens.get_tokens();
+
+    let mut block_s_cnt = 0;
+    for token in tokens.into_iter() {
+        function_tokens.push(token.clone());
+        match token {
+            Token::BlockE => {
+                block_s_cnt -= 1;
+                if block_s_cnt == 0 {
+                    let tokens = Tokens{ tokens: function_tokens.clone() };
+                    function_tokens.clear();
+                    function_tokens_list.push(tokens);
+                }
+            },
+            Token::BlockS => block_s_cnt += 1,
+            _ => (),
+        }
+    }
+    let mut ast_functions: Vec<AstFunction> = Vec::new();
+    for tokens_i in function_tokens_list.into_iter() {
+        // println!("++++++++ {:?}", tokens_i);
+        let mut tokens = tokens_i.clone();
+        tokens.pop();  // BlockE
+        tokens.reverse();
+        let identifier = match tokens.pop().unwrap(){
+            Token::Ide(ide) => ide,
+            _ => panic!("Unexpected token."),
+        };  // Ide()
+        tokens.pop();  // ParenS
+        tokens.pop();  // ParenE
+        tokens.pop();  // BlockS
+        tokens.reverse();
+        // println!("******** {:?}", tokens);
+        let statements = parse_function_body(tokens);
+        debug!("INSTRUCTIONS: {:?}", statements);
+        ast_functions.push(AstFunction::new(identifier, statements));
+    }
+    ast_functions.pop().unwrap()
 }
 
 pub fn parser(tokens: Tokens) -> AstFunction{

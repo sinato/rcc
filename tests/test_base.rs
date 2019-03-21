@@ -124,3 +124,9 @@ fn test_while() {
     let code = get_code("test_while");
     run(&code, "11");
 }
+
+#[test]
+fn test_function() {
+    let code = get_code("test_function");
+    run(&code, "10");
+}

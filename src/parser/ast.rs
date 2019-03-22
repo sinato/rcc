@@ -1,10 +1,12 @@
-use crate::lexer::token::Token;
+use crate::lexer::token::{Token, Tokens};
 use std::fmt;
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct AstProgram {
     pub functions: Vec<AstFunction>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct AstFunction {
     pub identifier: String,
     pub statements: Vec<AstStatement>,
@@ -87,6 +89,9 @@ impl AstVal {
             _ => panic!("Unexpected"),
         }
     }
+    pub fn new_from_tokens_call(_args: Tokens, token: Token) -> AstVal {
+        AstVal::Fin(AstFin::new_call_from_ide_token(token))
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -114,6 +119,7 @@ impl fmt::Display for AstExp {
 pub enum AstFin {
     Num(AstNum),
     Ide(AstIde),
+    Call(AstCall),
 }
 impl AstFin {
     pub fn new_from_num_token(num: Token) -> AstFin {
@@ -121,6 +127,14 @@ impl AstFin {
     }
     pub fn new_from_ide_token(ide: Token) -> AstFin {
         AstFin::Ide(AstIde { ide })
+    }
+    pub fn new_call_from_ide_token(ide: Token) -> AstFin {
+        match ide {
+            Token::Ide(ide) => AstFin::Call(AstCall {
+                func_identifier: ide,
+            }),
+            _ => panic!("expect identifier"),
+        }
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -138,6 +152,10 @@ impl AstIde {
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstNum {
     pub num: Token,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstCall {
+    pub func_identifier: String,
 }
 
 #[derive(Debug, PartialEq, Clone)]

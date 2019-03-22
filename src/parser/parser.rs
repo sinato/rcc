@@ -57,13 +57,43 @@ fn parse_expression(mut lhs: AstVal, min_precedence: u32, tokens: Tokens) -> (As
     (lhs, tokens)
 }
 
+fn parse_function_args(tokens: Tokens) -> (Option<Tokens>, Tokens) {
+    let mut itokens = tokens.clone();
+    let mut ret_tokens: Vec<Token> = Vec::new();
+    match itokens.pop() {
+        Some(token) => match token {
+            Token::ParenS => ret_tokens.push(token),
+            _ => (),
+        },
+        None => (),
+    }
+    match itokens.pop() {
+        Some(token) => match token {
+            Token::ParenE => ret_tokens.push(token),
+            _ => (),
+        },
+        None => (),
+    }
+    match ret_tokens.len() {
+        0 => (None, tokens),
+        _ => (Some(Tokens { tokens: ret_tokens }), itokens),
+    }
+}
+
 fn parse_expression_entry(mut tokens: Tokens) -> AstVal {
     let token = tokens.pop_fin();
-    let lhs = match token {
-        Some(token) => AstVal::new_from_token_fin(token),
-        None => panic!("Parse Error: Expect at least one token."),
+    let (args, tokens) = parse_function_args(tokens);
+    let lhs = match args {
+        Some(args) => match token {
+            Some(token) => AstVal::new_from_tokens_call(args, token),
+            None => panic!("Parse Error: Expect at least one token."),
+        },
+        None => match token {
+            Some(token) => AstVal::new_from_token_fin(token),
+            None => panic!("Parse Error: Expect at least one token."),
+        },
     };
-    let (lhs, _returned_tokens) = parse_expression(lhs, 0, tokens);
+    let (lhs, _returned_tokens) = parse_expression(lhs, 1, tokens);
     lhs
 }
 
@@ -323,7 +353,6 @@ fn parse_function(tokens: Tokens) -> AstProgram {
     }
     let mut ast_functions: Vec<AstFunction> = Vec::new();
     for tokens_i in function_tokens_list.into_iter() {
-        // println!("++++++++ {:?}", tokens_i);
         let mut tokens = tokens_i.clone();
         tokens.pop(); // BlockE
         tokens.reverse();
@@ -335,7 +364,6 @@ fn parse_function(tokens: Tokens) -> AstProgram {
         tokens.pop(); // ParenE
         tokens.pop(); // BlockS
         tokens.reverse();
-        // println!("******** {:?}", tokens);
         let statements = parse_function_body(tokens);
         debug!("INSTRUCTIONS: {:?}", statements);
         ast_functions.push(AstFunction::new(identifier, statements));

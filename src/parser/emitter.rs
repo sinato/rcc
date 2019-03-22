@@ -274,6 +274,7 @@ impl Emitter {
         match ast_fin {
             AstFin::Num(ast) => self.emit_ast_num(ast),
             AstFin::Ide(ast) => self.emit_ast_ide(ast),
+            AstFin::Call(ast) => self.emit_ast_call(ast),
         }
     }
     fn emit_ast_num(&self, ast_num: AstNum) -> IntValue {
@@ -288,5 +289,11 @@ impl Emitter {
             None => panic!("Emit Error: Undeclared variable."),
         }
         */
+    }
+    fn emit_ast_call(&mut self, ast: AstCall) -> IntValue {
+        let identifier = ast.func_identifier;
+        let fn_value = self.functions.get(&identifier).expect("Emit Error: Undeclared function.");
+        let func_call_site = self.builder.build_call(*fn_value, &[], "run_func");
+        func_call_site.try_as_basic_value().left().unwrap().into_int_value()
     }
 }

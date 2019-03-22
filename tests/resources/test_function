@@ -3,5 +3,5 @@ int func() {
 }
 
 int main() {
-    return 10;
+    return func();
 }

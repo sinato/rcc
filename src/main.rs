@@ -22,7 +22,8 @@ use parser::parser::parser;
 /// condition_statement  := identifier condition_op val
 /// return               := "return" val
 /// val                  := [ fin | expression ]
-/// fin                  := number | identifier
+/// fin                  := number | identifier | call
+/// call                 := (identifier"(") ")"
 /// expression           := fin {op fin}
 /// op                   := [ "+" | "*" | "=" ]
 /// condition_op         := "==" | "!="

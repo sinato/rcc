@@ -14,14 +14,14 @@ impl Lexer {
             ("CONDOP", r"==|!="),
             ("OP", r"[+*=]"),
             ("SEMI", r";"),
-            ("PAREN_S", r"\("),
-            ("PAREN_E", r"\)"),
-            ("BLOCK_S", r"\{"),
-            ("BLOCK_E", r"\}"),
             ("INT", r"int"),
             ("RET", r"return "),
             ("IF", r"if"),
             ("WHILE", r"while"),
+            ("PAREN_S", r"\("),
+            ("PAREN_E", r"\)"),
+            ("BLOCK_S", r"\{"),
+            ("BLOCK_E", r"\}"),
             ("IDEN", r"[a-z]+"),
         ];
         let re = make_regex(&token_patterns);

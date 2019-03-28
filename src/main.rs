@@ -14,11 +14,12 @@ use parser::parser::parser;
 /// EBNF:
 /// program              := function
 /// function             := "int" identifier "()" "{" statement+ "}"
-/// statement            := [ instruction; | compound_statement | if_statement | while_statement ]
-/// instruction          := [ binding | return ]
+/// statement            := [ instruction_statement | compound_statement | if_statement | while_statement ]
+/// instruction_statement:= instruction ";"
 /// compound_statement   := "{" {instruction";"} "}"
 /// if_statement         := "if" "(" condition_statement ")" compound_statement
 /// while_statement      := "while" "(" condition_statement ")" compound_statement
+/// instruction          := [ binding | return ]
 /// condition_statement  := identifier condition_op val
 /// return               := "return" val
 /// val                  := [ fin | expression ]

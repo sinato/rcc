@@ -8,8 +8,8 @@ use std::{env, process};
 mod lexer;
 use lexer::lexer::Lexer;
 mod parser;
+use parser::ast::AstProgram;
 use parser::emitter::Emitter;
-use parser::parser::parser;
 
 /// EBNF:
 /// program              := function
@@ -22,8 +22,8 @@ use parser::parser::parser;
 /// instruction          := [ binding | return ]
 /// condition_statement  := identifier condition_op val
 /// return               := "return" val
-/// val                  := [ fin | expression ]
-/// fin                  := number | identifier | call
+/// val                  := [ fin | expression | call ]
+/// fin                  := number | identifier
 /// call                 := (identifier"(") ")"
 /// expression           := fin {op fin}
 /// op                   := [ "+" | "*" | "=" ]
@@ -32,8 +32,8 @@ use parser::parser::parser;
 /// identifier           := [a-z]+
 fn compiler(code: String) {
     let lexer = Lexer::new();
-    let tokens = lexer.lex(code);
-    let ast = parser(tokens);
+    let mut tokens = lexer.lex(code);
+    let ast = AstProgram::new(&mut tokens);
 
     let mut emitter = Emitter::new();
     emitter.emit(ast);

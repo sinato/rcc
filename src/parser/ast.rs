@@ -1,8 +1,6 @@
 use crate::lexer::token::{Token, Tokens};
 use crate::parser::parser::{parse_expression_entry, parse_function_body};
-use crate::parser::util::{
-    condition1_is_ok, condition2_is_ok, trim_block_parentheses, trim_parentheses,
-};
+use crate::parser::util::{trim_block_parentheses, trim_parentheses};
 use std::fmt;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -282,6 +280,7 @@ impl AstBinding {
 pub enum AstVal {
     Exp(AstExp),
     Fin(AstFin),
+    Call(AstCall),
 }
 impl AstVal {
     pub fn new_from_token_fin(token: Token) -> AstVal {
@@ -292,7 +291,12 @@ impl AstVal {
         }
     }
     pub fn new_from_tokens_call(_args: Tokens, token: Token) -> AstVal {
-        AstVal::Fin(AstFin::new_call_from_ide_token(token))
+        match token {
+            Token::Ide(identifier) => AstVal::Call(AstCall {
+                func_identifier: identifier,
+            }),
+            _ => panic!("expect tokenntifier"),
+        }
     }
 }
 
@@ -321,7 +325,6 @@ impl fmt::Display for AstExp {
 pub enum AstFin {
     Num(AstNum),
     Ide(AstIde),
-    Call(AstCall),
 }
 impl AstFin {
     pub fn new_from_num_token(num: Token) -> AstFin {
@@ -330,15 +333,8 @@ impl AstFin {
     pub fn new_from_ide_token(ide: Token) -> AstFin {
         AstFin::Ide(AstIde { ide })
     }
-    pub fn new_call_from_ide_token(ide: Token) -> AstFin {
-        match ide {
-            Token::Ide(ide) => AstFin::Call(AstCall {
-                func_identifier: ide,
-            }),
-            _ => panic!("expect identifier"),
-        }
-    }
 }
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstIde {
     pub ide: Token,
@@ -351,10 +347,12 @@ impl AstIde {
         }
     }
 }
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstNum {
     pub num: Token,
 }
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstCall {
     pub func_identifier: String,

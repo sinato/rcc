@@ -258,6 +258,7 @@ impl Emitter {
         match ast_val {
             AstVal::Exp(ast) => self.emit_ast_exp(ast),
             AstVal::Fin(ast) => self.emit_ast_fin(ast),
+            AstVal::Call(ast) => self.emit_ast_call(ast),
         }
     }
     fn emit_ast_exp(&mut self, ast_binary_exp: AstExp) -> IntValue {
@@ -274,7 +275,6 @@ impl Emitter {
         match ast_fin {
             AstFin::Num(ast) => self.emit_ast_num(ast),
             AstFin::Ide(ast) => self.emit_ast_ide(ast),
-            AstFin::Call(ast) => self.emit_ast_call(ast),
         }
     }
     fn emit_ast_num(&self, ast_num: AstNum) -> IntValue {

@@ -4,7 +4,7 @@ use crate::parser::util::{condition1_is_ok, condition2_is_ok, trim_block_parenth
 
 pub fn parse_expression_entry(mut tokens: Tokens) -> AstVal {
     let token = tokens.pop_fin();
-    let (args, tokens) = parse_function_args(tokens);
+    let (args, mut tokens) = parse_function_args(tokens);
     let lhs = match args {
         Some(args) => match token {
             Some(token) => AstVal::new_from_tokens_call(args, token),
@@ -15,14 +15,13 @@ pub fn parse_expression_entry(mut tokens: Tokens) -> AstVal {
             None => panic!("Parse Error: Expect at least one token."),
         },
     };
-    let (lhs, _returned_tokens) = parse_expression(lhs, 1, tokens);
-    lhs
+    parse_expression(lhs, 1, &mut tokens)
 }
 
 /// [Reference: Oprator-precedence parser](https://en.wikipedia.org/wiki/Operator-precedence_parser)
-fn parse_expression(mut lhs: AstVal, min_precedence: u32, tokens: Tokens) -> (AstVal, Tokens) {
-    let mut tokens = tokens.clone();
-    while condition1_is_ok(&tokens, min_precedence) {
+fn parse_expression(mut lhs: AstVal, min_precedence: u32, tokens: &mut Tokens) -> AstVal {
+    let mut tokens = tokens;
+    while condition1_is_ok(&mut tokens, min_precedence) {
         let op: Token = match tokens.pop_op() {
             Some(op) => Token::Op(op),
             None => panic!("Parse Error: Expect a number token"),
@@ -34,11 +33,8 @@ fn parse_expression(mut lhs: AstVal, min_precedence: u32, tokens: Tokens) -> (As
             None => panic!("Parse Error: Expect a number token"),
         };
         let mut rhs = AstVal::new_from_token_fin(rhs);
-
         while condition2_is_ok(&tokens, precedence) {
-            let (ret_rhs, ret_tokens) = parse_expression(rhs, precedence, tokens);
-            rhs = ret_rhs;
-            tokens = ret_tokens;
+            rhs = parse_expression(rhs, precedence, &mut tokens);
         }
         lhs = AstVal::Exp(AstExp {
             lhs: Box::new(lhs),
@@ -46,7 +42,7 @@ fn parse_expression(mut lhs: AstVal, min_precedence: u32, tokens: Tokens) -> (As
             rhs: Box::new(rhs),
         });
     }
-    (lhs, tokens)
+    lhs
 }
 
 fn parse_function_args(tokens: Tokens) -> (Option<Tokens>, Tokens) {

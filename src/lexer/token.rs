@@ -22,12 +22,6 @@ impl Token {
             _ => panic!("Token Error: Expcet a number token"),
         }
     }
-    pub fn get_op(&self) -> String {
-        match self.clone() {
-            Token::Op(op) => op,
-            _ => panic!("Token Error: Expcet an operator token"),
-        }
-    }
     pub fn get_ide(&self) -> String {
         match self.clone() {
             Token::Ide(ide) => ide,
@@ -276,6 +270,11 @@ impl Tokens {
     }
     pub fn peak(&self) -> Option<Token> {
         self.clone().tokens.pop()
+    }
+    pub fn peak2(&self) -> Option<Token> {
+        let mut tokens = self.clone();
+        tokens.pop();
+        tokens.pop()
     }
     pub fn reverse(&mut self) {
         self.tokens.reverse()

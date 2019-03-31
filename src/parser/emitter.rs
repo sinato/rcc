@@ -237,7 +237,7 @@ impl Emitter {
     }
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> (IntValue, Environment) {
         let mut statement_environment = Environment::new();
-        let identifier = ast_binding.ide.get_identifier();
+        let identifier = ast_binding.ide.identifier;
 
         let alloca = match self.variables.get(&identifier) {
             Some(alloca) => *alloca,
@@ -264,7 +264,7 @@ impl Emitter {
     fn emit_ast_exp(&mut self, ast_binary_exp: AstExp) -> IntValue {
         let lhs_num = self.emit_ast_val(*ast_binary_exp.lhs.clone());
         let rhs_num = self.emit_ast_val(*ast_binary_exp.rhs.clone());
-        let op = ast_binary_exp.get_op_string();
+        let op = ast_binary_exp.op.operator;
         match op.as_ref() {
             "+" => self.builder.build_int_add(lhs_num, rhs_num, "sum"),
             "*" => self.builder.build_int_mul(lhs_num, rhs_num, "mul"),
@@ -278,10 +278,10 @@ impl Emitter {
         }
     }
     fn emit_ast_num(&self, ast_num: AstNum) -> IntValue {
-        self.context.i32_type().const_int(ast_num.num.get_num(), false)
+        self.context.i32_type().const_int(ast_num.number, false)
     }
     fn emit_ast_ide(&mut self, ast_ide: AstIde) -> IntValue {
-        self.builder.build_load(*self.variables.get(&ast_ide.get_identifier()).unwrap(), &ast_ide.ide.get_ide()).into_int_value()
+        self.builder.build_load(*self.variables.get(&ast_ide.identifier).unwrap(), &ast_ide.identifier).into_int_value()
         /*
         let alloca = self.variables.get(&ast_ide.get_identifier());
         match alloca {

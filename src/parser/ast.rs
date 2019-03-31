@@ -29,11 +29,8 @@ pub struct AstFunction {
 }
 impl AstFunction {
     pub fn new(tokens: &mut Tokens) -> AstFunction {
-        let identifier = match tokens.pop_ide() {
-            Ok(identifier) => match identifier {
-                Some(identifier) => identifier,
-                None => panic!("Expect an identifier".to_string()),
-            },
+        let identifier = match tokens.pop_identifier() {
+            Ok(identifier) => identifier,
             Err(msg) => panic!(msg),
         };
 
@@ -211,24 +208,13 @@ impl AstConditionalStatement {
     fn new(mut tokens: Tokens) -> AstConditionalStatement {
         tokens = trim_parentheses(tokens);
         tokens.reverse();
-        let identifier = match tokens.pop_ide() {
-            Ok(identifier) => match identifier {
-                Some(identifier) => identifier,
-                None => panic!("Expect an identifier"),
-            },
+        let condition_identifier = match tokens.pop_identifier() {
+            Ok(identifier) => AstIde { identifier },
             Err(msg) => panic!(msg),
         };
-        let condition_identifier = AstIde {
-            ide: Token::Ide(identifier),
-        };
-        let token = tokens.pop_condop();
-        let condition_operator = match token {
-            Some(op) => match op.as_ref() {
-                "==" => "==".to_string(),
-                "!=" => "!=".to_string(),
-                _ => panic!("Parse Error: Expect an equal operator."),
-            },
-            None => panic!("Parse Error: Expect at least one token."),
+        let condition_operator = match tokens.pop_condop() {
+            Ok(op) => op,
+            Err(msg) => panic!(msg),
         };
         let condition_val = AstVal::new(&mut tokens);
         AstConditionalStatement {
@@ -265,22 +251,13 @@ pub struct AstBinding {
 }
 impl AstBinding {
     pub fn new(mut tokens: Tokens) -> AstBinding {
-        let ide = match tokens.pop_ide() {
-            Ok(identifier) => match identifier {
-                Some(identifier) => AstIde {
-                    ide: Token::Ide(identifier),
-                },
-                None => panic!("Parse Error: Expect at least one token."),
-            },
-            Err(msg) => panic!(msg),
-        };
-        let token = tokens.pop_op();
-        match token {
-            Some(op) => match op.as_ref() {
+        let ide = AstIde::new(&mut tokens);
+        match tokens.pop_operator() {
+            Ok(op) => match op.as_ref() {
                 "=" => (),
                 _ => panic!("Parse Error: Expect an equal operator."),
             },
-            None => panic!("Parse Error: Expect at least one token."),
+            Err(msg) => panic!(msg),
         };
         let val = AstVal::new(&mut tokens);
         AstBinding { ide, val }
@@ -329,16 +306,13 @@ impl AstExp {
             AstVal::Call(_) => panic!(),
         }
     }
-    pub fn get_op_string(&self) -> String {
-        self.op.get_op()
-    }
 }
 /// [Reference: Oprator-precedence parser](https://en.wikipedia.org/wiki/Operator-precedence_parser)
 pub fn parse_expression(mut lhs: AstVal, min_precedence: u32, tokens: &mut Tokens) -> AstVal {
     let mut tokens = tokens;
     while condition1_is_ok(&tokens, min_precedence) {
         let op: AstOp = AstOp::new(tokens);
-        let precedence = tokens.get_precedence(op.get_op());
+        let precedence = tokens.get_precedence(op.operator.clone());
         let mut rhs = AstVal::new(tokens);
         while condition2_is_ok(&tokens, precedence) {
             rhs = parse_expression(rhs, precedence, &mut tokens);
@@ -350,15 +324,6 @@ pub fn parse_expression(mut lhs: AstVal, min_precedence: u32, tokens: &mut Token
         });
     }
     lhs
-}
-impl fmt::Display for AstExp {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "OP: {:?}\nLHS: {:?}\nRHS: {:?}\n",
-            self.op, *self.lhs, *self.rhs
-        )
-    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -381,40 +346,26 @@ impl AstFin {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstIde {
-    pub ide: Token,
+    pub identifier: String,
 }
 impl AstIde {
     pub fn new(tokens: &mut Tokens) -> AstIde {
-        let token = tokens.pop_fin();
-        match token {
-            Some(token) => match token {
-                Token::Ide(_) => AstIde { ide: token },
-                _ => panic!("Expect an identifier"),
-            },
-            None => panic!("Expect an identifier"),
-        }
-    }
-    pub fn get_identifier(&self) -> String {
-        match self.ide.clone() {
-            Token::Ide(s) => s,
-            _ => panic!("expect identifier"),
+        match tokens.pop_identifier() {
+            Ok(identifier) => AstIde { identifier },
+            Err(msg) => panic!(msg),
         }
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstNum {
-    pub num: Token,
+    pub number: u64,
 }
 impl AstNum {
     pub fn new(tokens: &mut Tokens) -> AstNum {
-        let token = tokens.pop_fin();
-        match token {
-            Some(token) => match token {
-                Token::Num(_) => AstNum { num: token },
-                _ => panic!("Expect a number"),
-            },
-            None => panic!("Expect a number"),
+        match tokens.pop_number() {
+            Ok(number) => AstNum { number },
+            Err(msg) => panic!(msg),
         }
     }
 }
@@ -425,54 +376,42 @@ pub struct AstCall {
 }
 impl AstCall {
     pub fn new(tokens: &mut Tokens) -> AstCall {
-        let token = tokens.pop_fin();
-        let _args = parse_function_args(tokens);
-        match token {
-            Some(token) => match token {
-                Token::Ide(func_identifier) => AstCall { func_identifier },
-                _ => panic!("Expect an identifier"),
-            },
-            None => panic!("Expect an identifier"),
+        let func_identifier = tokens.pop_identifier();
+        let _args = parse_call_args(tokens);
+        match func_identifier {
+            Ok(func_identifier) => AstCall { func_identifier },
+            Err(msg) => panic!(msg),
         }
     }
 }
-fn parse_function_args(tokens: &mut Tokens) -> Result<Tokens, String> {
+fn parse_call_args(tokens: &mut Tokens) -> Result<Tokens, String> {
     let mut ret_tokens: Vec<Token> = Vec::new();
     match tokens.pop() {
         Some(token) => match token {
             Token::ParenS => ret_tokens.push(token),
-            _ => return Err("Error@parse_function_args: Expect ParenS".to_string()),
+            _ => return Err("Expect ParenS".to_string()),
         },
-        None => return Err("Error@parse_function_args: Expect ParenS".to_string()),
+        None => return Err("Expect ParenS".to_string()),
     }
     match tokens.pop() {
         Some(token) => match token {
             Token::ParenE => ret_tokens.push(token),
-            _ => return Err("Error@parse_function_args: Expect ParenE".to_string()),
+            _ => return Err("Expect ParenE".to_string()),
         },
-        None => return Err("Error@parse_function_args: Expect ParenE".to_string()),
+        None => return Err("Expect ParenE".to_string()),
     }
     Ok(Tokens { tokens: ret_tokens })
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstOp {
-    pub op: Token,
+    pub operator: String,
 }
 impl AstOp {
     pub fn new(tokens: &mut Tokens) -> AstOp {
-        match tokens.pop() {
-            Some(token) => match token {
-                Token::Op(_) => AstOp { op: token },
-                _ => panic!("Expect an operator."),
-            },
-            None => panic!("Expect an operator."),
-        }
-    }
-    pub fn get_op(&self) -> String {
-        match self.op.clone() {
-            Token::Op(s) => s,
-            _ => panic!("expect operator"),
+        match tokens.pop_operator() {
+            Ok(operator) => AstOp { operator },
+            Err(msg) => panic!(msg),
         }
     }
 }

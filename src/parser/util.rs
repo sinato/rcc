@@ -1,9 +1,9 @@
 use crate::lexer::token::{Token, Tokens};
 
 pub fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
-    let precedence: Option<u32> = match tokens.clone().pop_op() {
-        Some(operator) => Some(tokens.get_precedence(operator)),
-        None => None,
+    let precedence: Option<u32> = match tokens.clone().pop_operator() {
+        Ok(operator) => Some(tokens.get_precedence(operator)),
+        Err(_msg) => None,
     };
     match precedence {
         Some(precedence) => precedence >= min_precedence,
@@ -11,9 +11,9 @@ pub fn condition1_is_ok(tokens: &Tokens, min_precedence: u32) -> bool {
     }
 }
 pub fn condition2_is_ok(tokens: &Tokens, given_precedence: u32) -> bool {
-    let precedence: Option<u32> = match tokens.clone().pop_op() {
-        Some(operator) => Some(tokens.get_precedence(operator)),
-        None => None,
+    let precedence: Option<u32> = match tokens.clone().pop_operator() {
+        Ok(operator) => Some(tokens.get_precedence(operator)),
+        Err(_msg) => None,
     };
     match precedence {
         Some(precedence) => precedence > given_precedence,

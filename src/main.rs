@@ -12,24 +12,24 @@ use parser::ast::AstProgram;
 use parser::emitter::Emitter;
 
 /// EBNF:
-/// program              := function
-/// function             := "int" identifier "()" "{" statement+ "}"
-/// statement            := [ instruction_statement | compound_statement | if_statement | while_statement ]
-/// instruction_statement:= instruction ";"
-/// compound_statement   := "{" {instruction";"} "}"
-/// if_statement         := "if" "(" condition_statement ")" compound_statement
-/// while_statement      := "while" "(" condition_statement ")" compound_statement
-/// instruction          := [ binding | return ]
-/// condition_statement  := identifier condition_op val
-/// return               := "return" val
-/// val                  := [ fin | expression | call ]
-/// fin                  := number | identifier
-/// call                 := (identifier"(") ")"
-/// expression           := fin {op fin}
-/// op                   := [ "+" | "*" | "=" ]
-/// condition_op         := "==" | "!="
-/// number               := \d+(\.\d)*
-/// identifier           := [a-z]+
+/// program               := function+
+/// function              := "int" identifier "()" "{" statement+ "}"
+/// statement             := [ instruction_statement | compound_statement | if_statement | while_statement ]
+/// compound_statement    := "{" instruction_statement* "}"
+/// if_statement          := "if" "(" condition_statement ")" compound_statement
+/// while_statement       := "while" "(" condition_statement ")" compound_statement
+/// instruction_statement := [ binding | return ]
+/// binding_statement     := identifier "=" val ";"
+/// return_statement      := "return" val ";"
+/// condition_statement   := identifier condition_op val
+/// val                   := [ fin | expression | call ]
+/// fin                   := number | identifier
+/// call                  := (identifier"(") ")"
+/// expression            := fin {op fin}
+/// op                    := [ "+" | "*" | "=" ]
+/// condition_op          := "==" | "!="
+/// number                := \d+(\.\d)*
+/// identifier            := [a-z]+
 fn compiler(code: String) {
     let lexer = Lexer::new();
     let mut tokens = lexer.lex(code);

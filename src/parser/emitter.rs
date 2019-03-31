@@ -109,7 +109,7 @@ impl Emitter {
     }
     fn emit_ast_statement(&mut self, ast_node: AstStatement, function: FunctionValue) -> (Option<IntValue>, Environment) {
         let (ret_val, ret_env) = match ast_node {
-            AstStatement::Instruction(ast) => self.emit_ast_instruction(ast),
+            AstStatement::InstructionStatement(ast) => self.emit_ast_instruction(ast),
             AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
             AstStatement::IfStatement(ast) => self.emit_ast_if_statement(ast, function),
             AstStatement::WhileStatement(ast) => self.emit_ast_while_statement(ast, function),
@@ -126,13 +126,13 @@ impl Emitter {
         */
         (ret_val, ret_env)
     }
-    fn emit_ast_instruction(&mut self, ast_node: AstInstruction) -> (Option<IntValue>, Environment) {
+    fn emit_ast_instruction(&mut self, ast_node: AstInstructionStatement) -> (Option<IntValue>, Environment) {
         match ast_node {
-            AstInstruction::Bind(ast) => {
+            AstInstructionStatement::Bind(ast) => {
                 let (ret_value, ret_environment) = self.emit_ast_bind(ast);
                 (Some(ret_value), ret_environment)
             },
-            AstInstruction::Return(ast) => { 
+            AstInstructionStatement::Return(ast) => { 
                 let (_, ret_environment) = self.emit_ast_return(ast);
                 (None, ret_environment) 
             },

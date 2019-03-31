@@ -21,9 +21,6 @@ pub struct Tokens {
     pub tokens: Vec<Token>,
 }
 impl Tokens {
-    pub fn new() -> Tokens {
-        Tokens { tokens: vec![] }
-    }
     pub fn get_precedence(&self, operator: String) -> u32 {
         // operator priorities
         let mut map = HashMap::new();
@@ -42,22 +39,14 @@ impl Tokens {
             None => return Err(msg),
         }
 
-        let msg = "Expect a condition statement".to_string();
         let condition_tokens = match self.pop_paren() {
-            Ok(tokens) => match tokens {
-                Some(tokens) => tokens,
-                None => return Err(msg),
-            },
-            Err(_) => return Err(msg),
+            Ok(tokens) => tokens,
+            Err(msg) => return Err(msg),
         };
 
-        let msg = "Expect a compound statement".to_string();
         let body_tokens = match self.pop_block() {
-            Ok(tokens) => match tokens {
-                Some(tokens) => tokens,
-                None => return Err(msg),
-            },
-            Err(_) => return Err(msg),
+            Ok(tokens) => tokens,
+            Err(msg) => return Err(msg),
         };
         Ok((condition_tokens, body_tokens))
     }
@@ -72,27 +61,19 @@ impl Tokens {
             None => return Err(msg),
         };
 
-        let msg = "Expect a condition statement".to_string();
         let condition_tokens = match self.pop_paren() {
-            Ok(tokens) => match tokens {
-                Some(tokens) => tokens,
-                None => return Err(msg),
-            },
-            Err(_) => return Err(msg),
+            Ok(tokens) => tokens,
+            Err(msg) => return Err(msg),
         };
 
-        let msg = "Expect a compound statement".to_string();
         let body_tokens = match self.pop_block() {
-            Ok(tokens) => match tokens {
-                Some(tokens) => tokens,
-                None => return Err(msg),
-            },
-            Err(_) => return Err(msg),
+            Ok(tokens) => tokens,
+            Err(msg) => return Err(msg),
         };
         Ok((condition_tokens, body_tokens))
     }
 
-    pub fn pop_parameters(&mut self) -> Result<Option<Tokens>, &str> {
+    pub fn pop_parameters(&mut self) -> Result<Tokens, String> {
         // parse function parameter
         let mut parameter_tokens: Vec<Token> = Vec::new();
         match self.tokens.pop() {
@@ -102,20 +83,26 @@ impl Tokens {
                         Some(token) => match token {
                             Token::Ide(_) => parameter_tokens.push(token),
                             Token::ParenE => break,
-                            _ => return Err("Expect identifiers or ParenE, but got other"),
+                            _ => {
+                                return Err(
+                                    "Expect identifiers or ParenE, but got other".to_string()
+                                )
+                            }
                         },
-                        None => return Err("Expect identifiers or ParenE, but got nothing"),
+                        None => {
+                            return Err("Expect identifiers or ParenE, but got nothing".to_string())
+                        }
                     }
                 },
-                _ => return Err("Expect ParenS, but got other"),
+                _ => return Err("Expect ParenS, but got other".to_string()),
             },
-            None => return Ok(None),
+            None => return Err("Expect parameters".to_string()),
         };
-        Ok(Some(Tokens {
+        Ok(Tokens {
             tokens: parameter_tokens,
-        }))
+        })
     }
-    pub fn pop_paren(&mut self) -> Result<Option<Tokens>, &str> {
+    pub fn pop_paren(&mut self) -> Result<Tokens, String> {
         let mut paren_tokens: Vec<Token> = Vec::new();
         let mut paren_s_cnt = 0;
 
@@ -123,9 +110,9 @@ impl Tokens {
         match self.peak() {
             Some(token) => match token {
                 Token::ParenS => (),
-                _ => return Err("Expect ParenS"),
+                _ => return Err("Expect ParenS".to_string()),
             },
-            None => return Err(" Expect ParenS"),
+            None => return Err(" Expect ParenS".to_string()),
         }
         loop {
             match self.tokens.pop() {
@@ -145,15 +132,18 @@ impl Tokens {
                     }
                 }
                 None => {
-                    return Err("It is expected that ParenE and ParenS exist in the same number.")
+                    return Err(
+                        "It is expected that ParenE and ParenS exist in the same number."
+                            .to_string(),
+                    )
                 }
             }
         }
-        Ok(Some(Tokens {
+        Ok(Tokens {
             tokens: paren_tokens,
-        }))
+        })
     }
-    pub fn pop_block(&mut self) -> Result<Option<Tokens>, String> {
+    pub fn pop_block(&mut self) -> Result<Tokens, String> {
         let mut block_tokens: Vec<Token> = Vec::new();
         let mut block_s_cnt = 0;
 
@@ -190,9 +180,9 @@ impl Tokens {
                 }
             }
         }
-        Ok(Some(Tokens {
+        Ok(Tokens {
             tokens: block_tokens,
-        }))
+        })
     }
     pub fn pop_instruction(&mut self) -> Result<Tokens, String> {
         let mut instruction_tokens: Vec<Token> = Vec::new();
@@ -240,6 +230,24 @@ impl Tokens {
             None => Err("Expect an identifier token".to_string()),
         }
     }
+    pub fn pop_semicolon(&mut self) -> Result<Token, String> {
+        match self.tokens.pop() {
+            Some(token) => match token {
+                Token::Semi => Ok(token),
+                _ => Err("Expect a semicolon token".to_string()),
+            },
+            None => Err("Expect a semicolon token".to_string()),
+        }
+    }
+    pub fn pop_return(&mut self) -> Result<Token, String> {
+        match self.tokens.pop() {
+            Some(token) => match token {
+                Token::Ret => Ok(token),
+                _ => Err("Expect a return token".to_string()),
+            },
+            None => Err("Expect a return token".to_string()),
+        }
+    }
     pub fn pop_number(&mut self) -> Result<u64, String> {
         match self.tokens.pop() {
             Some(token) => match token {
@@ -251,6 +259,9 @@ impl Tokens {
     }
     pub fn pop(&mut self) -> Option<Token> {
         self.tokens.pop()
+    }
+    pub fn first(&self) -> Option<&Token> {
+        self.tokens.first()
     }
     pub fn peak(&self) -> Option<Token> {
         self.clone().tokens.pop()

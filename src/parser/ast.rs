@@ -26,6 +26,7 @@ impl AstProgram {
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstFunction {
     pub identifier: String,
+    pub parameters: Vec<String>,
     pub statements: Vec<AstStatement>,
 }
 impl AstFunction {
@@ -34,7 +35,7 @@ impl AstFunction {
             Ok(identifier) => identifier,
             Err(msg) => panic!(msg),
         };
-        let _parameters = match tokens.pop_parameters() {
+        let parameters = match tokens.pop_parameters() {
             Ok(parameters) => parameters,
             Err(msg) => panic!(msg.to_string()),
         };
@@ -45,6 +46,7 @@ impl AstFunction {
         let statements = parse_function_body(body_tokens);
         AstFunction {
             identifier,
+            parameters,
             statements,
         }
     }

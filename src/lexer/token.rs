@@ -73,15 +73,15 @@ impl Tokens {
         Ok((condition_tokens, body_tokens))
     }
 
-    pub fn pop_parameters(&mut self) -> Result<Tokens, String> {
+    pub fn pop_parameters(&mut self) -> Result<Vec<String>, String> {
         // parse function parameter
-        let mut parameter_tokens: Vec<Token> = Vec::new();
+        let mut parameters: Vec<String> = Vec::new();
         match self.tokens.pop() {
             Some(token) => match token {
                 Token::ParenS => loop {
                     match self.tokens.pop() {
                         Some(token) => match token {
-                            Token::Ide(_) => parameter_tokens.push(token),
+                            Token::Ide(identifier) => parameters.push(identifier),
                             Token::ParenE => break,
                             _ => {
                                 return Err(
@@ -98,9 +98,7 @@ impl Tokens {
             },
             None => return Err("Expect parameters".to_string()),
         };
-        Ok(Tokens {
-            tokens: parameter_tokens,
-        })
+        Ok(parameters)
     }
     pub fn pop_paren(&mut self) -> Result<Tokens, String> {
         let mut paren_tokens: Vec<Token> = Vec::new();

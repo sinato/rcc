@@ -131,3 +131,10 @@ fn test_function() {
     let code = get_code("test_function");
     run(&code, "10");
 }
+
+#[test]
+#[ignore]
+fn test_function_with_arg() {
+    let code = get_code("test_function_with_arg");
+    run(&code, "33");
+}

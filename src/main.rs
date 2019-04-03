@@ -1,6 +1,7 @@
 extern crate env_logger;
 extern crate inkwell;
 extern crate log;
+extern crate rand;
 extern crate regex;
 
 use std::{env, process};

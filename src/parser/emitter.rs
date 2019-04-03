@@ -48,13 +48,6 @@ impl Environment {
     }
 }
 
-fn add_rnd_identifier(identifier: String) -> String {
-    let mut rng = thread_rng();
-    let random_chars: String = iter::repeat(()).map(|()| rng.sample(Alphanumeric)).take(7).collect();
-    identifier + &random_chars
-}
-
-
 pub struct Emitter {
     context: Context,
     builder: Builder,
@@ -78,6 +71,15 @@ impl Emitter {
             functions,
         }
     }
+    fn push_scope_mark(&mut self, identifier: String) -> String {
+        let mut rng = thread_rng();
+        let random_chars: String = iter::repeat(()).map(|()| rng.sample(Alphanumeric)).take(7).collect();
+        let scope_identifier = identifier + &random_chars;
+        let pointer = self.builder.build_alloca(self.context.i32_type(), &scope_identifier);
+        self.variables.update(scope_identifier.clone(), pointer);
+        scope_identifier
+
+    }
     pub fn print_to_file(&self, filename: &str) {
         let _ = self.module.print_to_file(path::Path::new(filename));
     }
@@ -92,16 +94,20 @@ impl Emitter {
     fn emit_function(&mut self, function: AstFunction) {
         let identifier = function.identifier;
         let func = self.module.add_function(&identifier, self.context.i32_type().fn_type(&[], false), None);
-        self.functions.insert(identifier, func);
+        self.functions.insert(identifier.clone(), func);
 
         let basic_block = self.context.append_basic_block(&func, "entry");
+
         self.builder.position_at_end(&basic_block);
+
+        let scope_identifier = self.push_scope_mark(identifier);
         for ast in function.statements {
             match self.emit_ast_statement(ast, func) {
                 Some(_) => (),
                 None => break,
             }
         }
+        self.variables.pop_to_identifier(scope_identifier);
     }
     fn emit_ast_statement(&mut self, ast_node: AstStatement, function: FunctionValue) -> Option<IntValue> {
         let ret_val = match ast_node {
@@ -125,7 +131,7 @@ impl Emitter {
         }
     }
     fn emit_ast_compound_statement(&mut self, ast: AstCompoundStatement) -> Option<IntValue> {
-        let state_identifier = add_rnd_identifier("compound".to_string());
+        let state_identifier = self.push_scope_mark("compound".to_string());
         let pointer = self.builder.build_alloca(self.context.i32_type(), &state_identifier);
         self.variables.update(state_identifier.clone(), pointer);
 

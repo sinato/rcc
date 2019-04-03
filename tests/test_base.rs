@@ -133,6 +133,13 @@ fn test_function() {
 }
 
 #[test]
+#[should_panic]
+fn test_function_scope() {
+    let code = get_code("test_function_scope");
+    run(&code, "23");
+}
+
+#[test]
 #[ignore]
 fn test_function_with_arg() {
     let code = get_code("test_function_with_arg");

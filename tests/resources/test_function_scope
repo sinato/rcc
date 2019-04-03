@@ -1,0 +1,7 @@
+int func() {
+    a = 24;
+}
+
+int main() {
+    return a;
+}

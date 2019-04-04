@@ -5,7 +5,8 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::IntPredicate;
 use inkwell::AddressSpace;
-use inkwell::values::{IntValue, PointerValue, FunctionValue};
+use inkwell::values::{BasicValueEnum, IntValue, PointerValue, FunctionValue};
+use inkwell::types::BasicTypeEnum;
 use std::collections::HashMap;
 use std::path;
 use std::iter;
@@ -74,7 +75,7 @@ impl Emitter {
     fn push_scope_mark(&mut self, identifier: String) -> String {
         let mut rng = thread_rng();
         let random_chars: String = iter::repeat(()).map(|()| rng.sample(Alphanumeric)).take(7).collect();
-        let scope_identifier = identifier + &random_chars;
+        let scope_identifier = identifier + "_" + &random_chars;
         let pointer = self.builder.build_alloca(self.context.i32_type(), &scope_identifier);
         self.variables.update(scope_identifier.clone(), pointer);
         scope_identifier
@@ -93,14 +94,27 @@ impl Emitter {
     }
     fn emit_function(&mut self, function: AstFunction) {
         let identifier = function.identifier;
-        let func = self.module.add_function(&identifier, self.context.i32_type().fn_type(&[], false), None);
-        self.functions.insert(identifier.clone(), func);
 
+        let parameters: Vec<BasicTypeEnum> = function.parameters.iter()
+                                              .map(|_| self.context.i32_type().into())
+                                              .collect();
+        let func = self.module.add_function(&identifier, self.context.i32_type().fn_type(&parameters, false), None);
+        self.functions.insert(identifier.clone(), func);
         let basic_block = self.context.append_basic_block(&func, "entry");
 
         self.builder.position_at_end(&basic_block);
-
         let scope_identifier = self.push_scope_mark(identifier);
+        
+        for (i, parameter_identifier) in function.parameters.into_iter().enumerate() {
+            let parameter_value = match func.get_nth_param(i as u32) {
+                Some(val) => val.into_int_value(),
+                None => panic!("sippai"),
+            };
+            let parameter_alloca = self.builder.build_alloca(self.context.i32_type(), &parameter_identifier);
+            self.builder.build_store(parameter_alloca, parameter_value);
+            self.variables.update(parameter_identifier, parameter_alloca);
+        }
+
         for ast in function.statements {
             match self.emit_ast_statement(ast, func) {
                 Some(_) => (),
@@ -266,8 +280,13 @@ impl Emitter {
     }
     fn emit_ast_call(&mut self, ast: AstCall) -> IntValue {
         let identifier = ast.func_identifier;
-        let fn_value = self.functions.get(&identifier).expect("Emit Error: Undeclared function.");
-        let func_call_site = self.builder.build_call(*fn_value, &[], "run_func");
+        let functions = self.functions.clone();
+        let fn_value = functions.get(&identifier).expect("Emit Error: Undeclared function.");
+        let arguments: Vec<BasicValueEnum> = ast.arguments.into_iter()
+                                              .map(|val| self.emit_ast_val(val))
+                                              .map(|val| val.into())
+                                              .collect();
+        let func_call_site = self.builder.build_call(*fn_value, &arguments, "run_func");
         func_call_site.try_as_basic_value().left().unwrap().into_int_value()
     }
 }

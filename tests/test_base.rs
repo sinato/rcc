@@ -140,7 +140,6 @@ fn test_function_scope() {
 }
 
 #[test]
-#[ignore]
 fn test_function_with_arg() {
     let code = get_code("test_function_with_arg");
     run(&code, "33");

@@ -14,7 +14,7 @@ use parser::emitter::Emitter;
 
 /// EBNF:
 /// program               := function+
-/// function              := "int" identifier "()" "{" statement+ "}"
+/// function              := "int" identifier "(" val* ")" "{" statement+ "}"
 /// statement             := [ instruction_statement | compound_statement | if_statement | while_statement ]
 /// compound_statement    := "{" instruction_statement* "}"
 /// if_statement          := "if" "(" condition_statement ")" compound_statement
@@ -25,7 +25,7 @@ use parser::emitter::Emitter;
 /// condition_statement   := identifier condition_op val
 /// val                   := [ fin | expression | call ]
 /// fin                   := number | identifier
-/// call                  := (identifier"(") ")"
+/// call                  := (identifier"(") val* ")"
 /// expression            := fin {op fin}
 /// op                    := [ "+" | "*" | "=" ]
 /// condition_op          := "==" | "!="
@@ -35,7 +35,6 @@ fn compiler(code: String) {
     let lexer = Lexer::new();
     let mut tokens = lexer.lex(code);
     let ast = AstProgram::new(&mut tokens);
-
     let mut emitter = Emitter::new();
     emitter.emit(ast);
     emitter.print_to_file("compiled.ll");

@@ -363,34 +363,36 @@ impl AstNum {
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstCall {
     pub func_identifier: String,
+    pub arguments: Vec<AstVal>,
 }
 impl AstCall {
     pub fn new(tokens: &mut Tokens) -> AstCall {
         let func_identifier = tokens.pop_identifier();
-        let _args = parse_call_args(tokens);
+        let arguments = match parse_call_args(tokens) {
+            Ok(arguments) => arguments,
+            Err(msg) => panic!(msg),
+        };
         match func_identifier {
-            Ok(func_identifier) => AstCall { func_identifier },
+            Ok(func_identifier) => AstCall {
+                func_identifier,
+                arguments,
+            },
             Err(msg) => panic!(msg),
         }
     }
 }
-fn parse_call_args(tokens: &mut Tokens) -> Result<Tokens, String> {
-    let mut ret_tokens: Vec<Token> = Vec::new();
-    match tokens.pop() {
-        Some(token) => match token {
-            Token::ParenS => ret_tokens.push(token),
-            _ => return Err("Expect ParenS".to_string()),
-        },
-        None => return Err("Expect ParenS".to_string()),
+fn parse_call_args(tokens: &mut Tokens) -> Result<Vec<AstVal>, String> {
+    let mut arguments: Vec<AstVal> = Vec::new();
+    let tokens = match tokens.pop_paren() {
+        Ok(tokens) => tokens,
+        Err(msg) => return Err(msg),
+    };
+    let mut tokens = trim_parentheses(tokens);
+    while let Some(_) = tokens.peak() {
+        let argument: AstVal = AstVal::new(&mut tokens);
+        arguments.push(argument);
     }
-    match tokens.pop() {
-        Some(token) => match token {
-            Token::ParenE => ret_tokens.push(token),
-            _ => return Err("Expect ParenE".to_string()),
-        },
-        None => return Err("Expect ParenE".to_string()),
-    }
-    Ok(Tokens { tokens: ret_tokens })
+    Ok(arguments)
 }
 
 #[derive(Debug, PartialEq, Clone)]

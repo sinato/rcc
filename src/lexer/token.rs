@@ -6,6 +6,7 @@ pub enum Token {
     Op(String),
     CondOp(String),
     Ide(String),
+    Comma,
     ParenE,
     ParenS,
     BlockE,
@@ -27,6 +28,33 @@ impl Tokens {
         map.insert(String::from("+"), 10);
         map.insert(String::from("*"), 20);
         map[&operator]
+    }
+    pub fn split_with_comma(&mut self) -> Option<Vec<Tokens>> {
+        if self.tokens.len() == 0 {
+            return None;
+        }
+        let mut ret: Vec<Tokens> = Vec::new();
+        let mut tmp: Vec<Token> = Vec::new();
+        loop {
+            match self.pop() {
+                Some(token) => match token {
+                    Token::Comma => {
+                        ret.push(Tokens {
+                            tokens: tmp.clone(),
+                        });
+                        tmp.clear();
+                    }
+                    _ => tmp.push(token),
+                },
+                None => {
+                    ret.push(Tokens {
+                        tokens: tmp.clone(),
+                    });
+                    break;
+                }
+            }
+        }
+        Some(ret)
     }
 
     pub fn pop_while_statement(&mut self) -> Result<(Tokens, Tokens), String> {
@@ -73,33 +101,6 @@ impl Tokens {
         Ok((condition_tokens, body_tokens))
     }
 
-    pub fn pop_parameters(&mut self) -> Result<Vec<String>, String> {
-        // parse function parameter
-        let mut parameters: Vec<String> = Vec::new();
-        match self.tokens.pop() {
-            Some(token) => match token {
-                Token::ParenS => loop {
-                    match self.tokens.pop() {
-                        Some(token) => match token {
-                            Token::Ide(identifier) => parameters.push(identifier),
-                            Token::ParenE => break,
-                            _ => {
-                                return Err(
-                                    "Expect identifiers or ParenE, but got other".to_string()
-                                )
-                            }
-                        },
-                        None => {
-                            return Err("Expect identifiers or ParenE, but got nothing".to_string())
-                        }
-                    }
-                },
-                _ => return Err("Expect ParenS, but got other".to_string()),
-            },
-            None => return Err("Expect parameters".to_string()),
-        };
-        Ok(parameters)
-    }
     pub fn pop_paren(&mut self) -> Result<Tokens, String> {
         let mut paren_tokens: Vec<Token> = Vec::new();
         let mut paren_s_cnt = 0;

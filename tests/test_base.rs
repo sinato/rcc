@@ -144,3 +144,21 @@ fn test_function_with_arg() {
     let code = get_code("test_function_with_arg");
     run(&code, "33");
 }
+
+#[test]
+fn test_function_with_args() {
+    let code = get_code("test_function_with_args");
+    run(&code, "43");
+}
+
+#[test]
+fn test_function_with_args2() {
+    let code = get_code("test_function_with_args2");
+    run(&code, "7");
+}
+
+#[test]
+fn test_function_with_complex_args() {
+    let code = get_code("test_function_with_complex_args");
+    run(&code, "65");
+}

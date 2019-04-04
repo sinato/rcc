@@ -35,10 +35,22 @@ impl AstFunction {
             Ok(identifier) => identifier,
             Err(msg) => panic!(msg),
         };
-        let parameters = match tokens.pop_parameters() {
-            Ok(parameters) => parameters,
-            Err(msg) => panic!(msg.to_string()),
+
+        let mut parameter_tokens = match tokens.pop_paren() {
+            Ok(tokens) => trim_parentheses(tokens),
+            Err(msg) => panic!(msg),
         };
+        let mut parameters: Vec<String> = Vec::new();
+        if let Some(parameter_tokens) = parameter_tokens.split_with_comma() {
+            for mut tokens in parameter_tokens {
+                let parameter = match tokens.pop_identifier() {
+                    Ok(identifier) => identifier,
+                    Err(msg) => panic!(msg),
+                };
+                parameters.push(parameter);
+            }
+        }
+
         let body_tokens = match tokens.pop_block() {
             Ok(block_tokens) => block_tokens,
             Err(msg) => panic!(msg),
@@ -383,14 +395,15 @@ impl AstCall {
 }
 fn parse_call_args(tokens: &mut Tokens) -> Result<Vec<AstVal>, String> {
     let mut arguments: Vec<AstVal> = Vec::new();
-    let tokens = match tokens.pop_paren() {
-        Ok(tokens) => tokens,
+    let mut tokens = match tokens.pop_paren() {
+        Ok(tokens) => trim_parentheses(tokens),
         Err(msg) => return Err(msg),
     };
-    let mut tokens = trim_parentheses(tokens);
-    while let Some(_) = tokens.peak() {
-        let argument: AstVal = AstVal::new(&mut tokens);
-        arguments.push(argument);
+    if let Some(tokens_vec) = tokens.split_with_comma() {
+        for mut tokens in tokens_vec.into_iter() {
+            let argument: AstVal = AstVal::new(&mut tokens);
+            arguments.push(argument);
+        }
     }
     Ok(arguments)
 }

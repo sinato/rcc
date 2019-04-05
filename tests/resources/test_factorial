@@ -1,0 +1,10 @@
+int factrial(int a, int b) {
+    if (a == b) {
+        return b;
+    }
+    return a * factrial(a + 1, b);
+}
+
+int main() {
+    return factrial(1, 5);
+}

@@ -152,17 +152,16 @@ impl Emitter {
         let AstCompoundStatement::Instructions(asts) = ast;
         let mut val = None;
         for ast in asts {
-            let ret_val = self.emit_ast_instruction(ast);
-            match ret_val {
+            match self.emit_ast_instruction(ast) {
                 Some(v) => val = Some(v),
-                None => panic!("Return is not allowed in a block."),
-            };
+                None => {
+                    self.variables.pop_to_identifier(state_identifier);
+                    return None
+                },
+            }
         }
         self.variables.pop_to_identifier(state_identifier);
-        match val {
-            Some(_) => val,
-            None => panic!("This block has no statements."),
-        }
+        val
     }
     // https://thedan64.github.io/inkwell/inkwell/enum.IntPredicate.html
     fn emit_ast_condition_statement(&mut self, ast: AstConditionalStatement) -> IntValue {
@@ -188,11 +187,13 @@ impl Emitter {
         self.builder.position_at_end(&then_block);
 
         let env = self.variables.clone();
-        let _ = match *block {
+        let block_pattern = match *block {
             AstStatement::CompoundStatement(ast) => self.emit_ast_compound_statement(ast),
             _ => panic!("this pattern is not implemented"),
         };
-        self.builder.build_unconditional_branch(&cont_block);
+        if let Some(_) = block_pattern {
+            self.builder.build_unconditional_branch(&cont_block);
+        }
         self.builder.get_insert_block().unwrap();
 
         self.builder.position_at_end(&else_block);
@@ -200,16 +201,18 @@ impl Emitter {
         self.builder.get_insert_block().unwrap();
 
         self.builder.position_at_end(&cont_block);
-        // PointerValue -> IntValue ---> PhiValue -> IntValue -> PointerValue
-        // PointerValue -> IntValue _/
-        for (key, _) in env.variables.iter() {
-            let alloca_val = env.get(&key).expect("");
-            let alloca_then_val = self.variables.get(&key).expect("");
+        if let Some(_) = block_pattern {
+            // PointerValue -> IntValue ---> PhiValue -> IntValue -> PointerValue
+            // PointerValue -> IntValue _/
+            for (key, _) in env.variables.iter() {
+                let alloca_val = env.get(&key).expect("");
+                let alloca_then_val = self.variables.get(&key).expect("");
 
-            let alloca_phi = self.builder.build_phi(self.context.i32_type().ptr_type(AddressSpace::Generic), "phitmp");
-            alloca_phi.add_incoming(&[(&alloca_then_val, &then_block), (&alloca_val, &else_block)]);
-            let alloca_phi = alloca_phi.as_basic_value().into_pointer_value();
-            self.variables.update(key.to_string(), alloca_phi);
+                let alloca_phi = self.builder.build_phi(self.context.i32_type().ptr_type(AddressSpace::Generic), "phitmp");
+                alloca_phi.add_incoming(&[(&alloca_then_val, &then_block), (&alloca_val, &else_block)]);
+                let alloca_phi = alloca_phi.as_basic_value().into_pointer_value();
+                self.variables.update(key.to_string(), alloca_phi);
+            }
         }
         Some(const_one)
     }

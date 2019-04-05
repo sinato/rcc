@@ -162,3 +162,9 @@ fn test_function_with_complex_args() {
     let code = get_code("test_function_with_complex_args");
     run(&code, "65");
 }
+
+#[test]
+fn test_factorial() {
+    let code = get_code("test_factorial");
+    run(&code, "120");
+}

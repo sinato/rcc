@@ -31,6 +31,11 @@ pub struct AstFunction {
 }
 impl AstFunction {
     pub fn new(tokens: &mut Tokens) -> AstFunction {
+        let _function_type = match tokens.pop_type() {
+            Ok(function_type) => function_type,
+            Err(msg) => panic!(msg),
+        };
+
         let identifier = match tokens.pop_identifier() {
             Ok(identifier) => identifier,
             Err(msg) => panic!(msg),
@@ -43,6 +48,11 @@ impl AstFunction {
         let mut parameters: Vec<String> = Vec::new();
         if let Some(parameter_tokens) = parameter_tokens.split_with_comma() {
             for mut tokens in parameter_tokens {
+                let _parameter_type = match tokens.pop_type() {
+                    Ok(parameter_type) => parameter_type,
+                    Err(msg) => panic!(msg),
+                };
+
                 let parameter = match tokens.pop_identifier() {
                     Ok(identifier) => identifier,
                     Err(msg) => panic!(msg),
@@ -127,6 +137,9 @@ impl AstInstructionStatement {
     fn new(tokens: Tokens) -> AstInstructionStatement {
         match tokens.first() {
             Some(token) => match token {
+                Token::Type(_) => {
+                    AstInstructionStatement::Bind(AstBinding::new_with_declare(tokens))
+                }
                 Token::Ide(_) => AstInstructionStatement::Bind(AstBinding::new(tokens)),
                 Token::Ret => AstInstructionStatement::Return(AstReturn::new(tokens)),
                 _ => panic!("Parse Error: Unexpected token."),
@@ -159,8 +172,27 @@ impl AstBinding {
         };
         AstBinding { ide, val }
     }
+    pub fn new_with_declare(mut tokens: Tokens) -> AstBinding {
+        match tokens.pop_semicolon() {
+            Ok(_token) => (),
+            Err(msg) => panic!(msg),
+        }
+        tokens.reverse();
+        let _variable_type = match tokens.pop_type() {
+            Ok(variable_type) => variable_type,
+            Err(msg) => panic!(msg),
+        };
+        let ide = AstIde::new(&mut tokens);
+        let val = match tokens.pop_operator() {
+            Ok(op) => match op.as_ref() {
+                "=" => AstVal::new(&mut tokens),
+                _ => panic!("Parse Error: Expect an equal operator."),
+            },
+            Err(msg) => panic!(msg),
+        };
+        AstBinding { ide, val }
+    }
 }
-
 /// return_statement := "return" val ";"
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstReturn {

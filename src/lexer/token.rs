@@ -6,6 +6,7 @@ pub enum Token {
     Op(String),
     CondOp(String),
     Ide(String),
+    Type(String),
     Comma,
     ParenE,
     ParenS,
@@ -218,6 +219,15 @@ impl Tokens {
                 _ => Err("Expect a conditional operator token".to_string()),
             },
             None => Err("Expect a conditional operator token".to_string()),
+        }
+    }
+    pub fn pop_type(&mut self) -> Result<String, String> {
+        match self.tokens.pop() {
+            Some(token) => match token {
+                Token::Type(typ) => Ok(typ),
+                _ => Err("Expect a type token".to_string()),
+            },
+            None => Err("Expect an identifier token".to_string()),
         }
     }
     pub fn pop_identifier(&mut self) -> Result<String, String> {

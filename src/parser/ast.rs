@@ -118,8 +118,8 @@ impl AstStatement {
                 Err(msg) => panic!(msg),
             },
             _ => match tokens.pop_instruction() {
-                Ok(instruction_tokens) => AstStatement::InstructionStatement(
-                    AstInstructionStatement::new(instruction_tokens),
+                Ok(mut instruction_tokens) => AstStatement::InstructionStatement(
+                    AstInstructionStatement::new(&mut instruction_tokens),
                 ),
                 Err(msg) => panic!(msg),
             },
@@ -132,14 +132,13 @@ impl AstStatement {
 pub enum AstInstructionStatement {
     Bind(AstBinding),
     Return(AstReturn),
+    Declare(AstDeclare),
 }
 impl AstInstructionStatement {
-    fn new(tokens: Tokens) -> AstInstructionStatement {
+    fn new(tokens: &mut Tokens) -> AstInstructionStatement {
         match tokens.first() {
             Some(token) => match token {
-                Token::Type(_) => {
-                    AstInstructionStatement::Bind(AstBinding::new_with_declare(tokens))
-                }
+                Token::Type(_) => AstInstructionStatement::Declare(AstDeclare::new(tokens)),
                 Token::Ide(_) => AstInstructionStatement::Bind(AstBinding::new(tokens)),
                 Token::Ret => AstInstructionStatement::Return(AstReturn::new(tokens)),
                 _ => panic!("Parse Error: Unexpected token."),
@@ -149,30 +148,14 @@ impl AstInstructionStatement {
     }
 }
 
-/// binding_statement := identifier "=" val ";"
 #[derive(Debug, PartialEq, Clone)]
-pub struct AstBinding {
-    pub ide: AstIde,
-    pub val: AstVal,
+pub enum AstDeclare {
+    BindDeclare(AstBindDeclare),
+    SimpleDeclare(AstSimpleDeclare),
 }
-impl AstBinding {
-    pub fn new(mut tokens: Tokens) -> AstBinding {
-        match tokens.pop_semicolon() {
-            Ok(_token) => (),
-            Err(msg) => panic!(msg),
-        }
-        tokens.reverse();
-        let ide = AstIde::new(&mut tokens);
-        let val = match tokens.pop_operator() {
-            Ok(op) => match op.as_ref() {
-                "=" => AstVal::new(&mut tokens),
-                _ => panic!("Parse Error: Expect an equal operator."),
-            },
-            Err(msg) => panic!(msg),
-        };
-        AstBinding { ide, val }
-    }
-    pub fn new_with_declare(mut tokens: Tokens) -> AstBinding {
+impl AstDeclare {
+    fn new(raw_tokens: &mut Tokens) -> AstDeclare {
+        let mut tokens: Tokens = raw_tokens.clone();
         match tokens.pop_semicolon() {
             Ok(_token) => (),
             Err(msg) => panic!(msg),
@@ -183,9 +166,53 @@ impl AstBinding {
             Err(msg) => panic!(msg),
         };
         let ide = AstIde::new(&mut tokens);
+        match tokens.peak() {
+            Some(token) => match token {
+                Token::Op(_) => {
+                    let val = match tokens.pop_operator() {
+                        Ok(op) => match op.as_ref() {
+                            "=" => AstVal::new(&mut tokens),
+                            _ => panic!("Parse Error: Expect an equal operator."),
+                        },
+                        Err(msg) => panic!(msg),
+                    };
+                    AstDeclare::BindDeclare(AstBindDeclare { ide, val })
+                }
+                _ => panic!("Unexpected pattern"),
+            },
+            None => AstDeclare::SimpleDeclare(AstSimpleDeclare { ide }),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstBindDeclare {
+    pub ide: AstIde,
+    pub val: AstVal,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstSimpleDeclare {
+    pub ide: AstIde,
+}
+
+/// binding_statement := identifier "=" val ";"
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstBinding {
+    pub ide: AstIde,
+    pub val: AstVal,
+}
+impl AstBinding {
+    pub fn new(tokens: &mut Tokens) -> AstBinding {
+        match tokens.pop_semicolon() {
+            Ok(_token) => (),
+            Err(msg) => panic!(msg),
+        }
+        tokens.reverse();
+        let ide = AstIde::new(tokens);
         let val = match tokens.pop_operator() {
             Ok(op) => match op.as_ref() {
-                "=" => AstVal::new(&mut tokens),
+                "=" => AstVal::new(tokens),
                 _ => panic!("Parse Error: Expect an equal operator."),
             },
             Err(msg) => panic!(msg),
@@ -199,7 +226,7 @@ pub struct AstReturn {
     pub val: AstVal,
 }
 impl AstReturn {
-    pub fn new(mut tokens: Tokens) -> AstReturn {
+    pub fn new(tokens: &mut Tokens) -> AstReturn {
         match tokens.pop_semicolon() {
             Ok(_token) => (),
             Err(msg) => panic!(msg),
@@ -207,7 +234,7 @@ impl AstReturn {
         tokens.reverse();
         match tokens.pop_return() {
             Ok(_) => AstReturn {
-                val: AstVal::new(&mut tokens),
+                val: AstVal::new(tokens),
             },
             Err(msg) => panic!(msg),
         }
@@ -229,8 +256,8 @@ impl AstCompoundStatement {
         let mut compound_tokens = trim_block_parentheses(compound_tokens);
         compound_tokens.reverse();
         let mut instructions: Vec<AstInstructionStatement> = Vec::new();
-        while let Ok(instruction_tokens) = compound_tokens.pop_instruction() {
-            instructions.push(AstInstructionStatement::new(instruction_tokens));
+        while let Ok(mut instruction_tokens) = compound_tokens.pop_instruction() {
+            instructions.push(AstInstructionStatement::new(&mut instruction_tokens));
         }
         AstCompoundStatement::Instructions(instructions)
     }
@@ -336,8 +363,8 @@ impl AstExp {
         let lhs = AstVal::Fin(AstFin::new(tokens));
         match parse_expression(lhs, 1, tokens) {
             AstVal::Exp(ast_exp) => return ast_exp,
-            AstVal::Fin(_) => panic!(),
-            AstVal::Call(_) => panic!(),
+            AstVal::Fin(_) => panic!("Unexpected pattern"),
+            AstVal::Call(_) => panic!("Unexpected pattern"),
         }
     }
 }

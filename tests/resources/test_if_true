@@ -1,6 +1,6 @@
 int main() {
-    a = 77;
-    b = 3;
+    int a = 77;
+    int b = 3;
     if (a == 77) {
         a = a + 24;
         b = b + 100;

@@ -142,6 +142,10 @@ impl Emitter {
                 let _ = self.emit_ast_return(ast);
                 None
             },
+            AstInstructionStatement::Declare(ast) => {
+                let ret_value = self.emit_ast_declare(ast);
+                Some(ret_value)
+            },
         }
     }
     fn emit_ast_compound_statement(&mut self, ast: AstCompoundStatement) -> Option<IntValue> {
@@ -235,12 +239,39 @@ impl Emitter {
         self.builder.position_at_end(&cont_block);
         Some(const_one)
     }
+    fn emit_ast_declare(&mut self, ast: AstDeclare) -> IntValue {
+        match ast {
+            AstDeclare::SimpleDeclare(ast) => self.emit_ast_simple_declare(ast),
+            AstDeclare::BindDeclare(ast) => self.emit_ast_bind_declare(ast),
+        }
+    }
+    fn emit_ast_simple_declare(&mut self, ast: AstSimpleDeclare) -> IntValue {
+        let identifier = ast.ide.identifier;
+        let alloca = match self.variables.get(&identifier) {
+            Some(alloca) => alloca,
+            None => self.builder.build_alloca(self.context.i32_type(), &identifier),
+        };
+        self.variables.update(identifier, alloca);
+        self.context.i32_type().const_int(0, false)
+    }
+    fn emit_ast_bind_declare(&mut self, ast: AstBindDeclare) -> IntValue {
+        let identifier = ast.ide.identifier;
+        let alloca = match self.variables.get(&identifier) {
+            Some(alloca) => alloca,
+            None => self.builder.build_alloca(self.context.i32_type(), &identifier),
+        };
+        let val = self.emit_ast_val(ast.val);
+        self.builder.build_store(alloca, val);
+        self.variables.update(identifier, alloca);
+        val
+    }
+
     fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {
         let identifier = ast_binding.ide.identifier;
 
         let alloca = match self.variables.get(&identifier) {
             Some(alloca) => alloca,
-            None => self.builder.build_alloca(self.context.i32_type(), &identifier),
+            None => panic!(format!("Use of undeclared identifier \"{:?}\".", identifier)),
         };
         let val = self.emit_ast_val(ast_binding.val);
         self.builder.build_store(alloca, val);

@@ -19,9 +19,11 @@ use parser::emitter::Emitter;
 /// compound_statement    := "{" instruction_statement* "}"
 /// if_statement          := "if" "(" condition_statement ")" compound_statement
 /// while_statement       := "while" "(" condition_statement ")" compound_statement
-/// instruction_statement := [ binding_statement | initbinding_statement | return_statement ]
+/// instruction_statement := [ binding_statement | declare_statement | return_statement ]
 /// binding_statement     := identifier "=" val ";"
-/// initbinding_statement := type identifier "=" val ";"
+/// declare_statement     := [simple_declare_statement | bind_declare_statement]
+/// simple_declare_statement := type identifier ";"
+/// bind_declare_statement   := type identifier "=" val ";"
 /// return_statement      := "return" val ";"
 /// condition_statement   := identifier condition_op val
 /// val                   := [ fin | expression | call ]

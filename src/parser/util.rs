@@ -21,7 +21,8 @@ pub fn condition2_is_ok(tokens: &Tokens, given_precedence: u32) -> bool {
     }
 }
 
-pub fn trim_parentheses(mut tokens: Tokens) -> Tokens {
+pub fn trim_parentheses(tokens: &mut Tokens) -> Tokens {
+    let mut tokens = tokens.clone();
     tokens.reverse();
     match tokens.pop() {
         Some(token) => match token {
@@ -41,7 +42,8 @@ pub fn trim_parentheses(mut tokens: Tokens) -> Tokens {
     tokens
 }
 
-pub fn trim_block_parentheses(mut tokens: Tokens) -> Tokens {
+pub fn trim_block_parentheses(tokens: &mut Tokens) -> Tokens {
+    let mut tokens = tokens.clone();
     tokens.reverse();
     match tokens.pop() {
         Some(token) => match token {

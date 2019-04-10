@@ -10,6 +10,7 @@ impl Lexer {
     // static constructor
     pub fn new() -> Lexer {
         let token_patterns = vec![
+            ("ARROP", r"\[\d+\]"),
             ("NUM", r"\d+(\.\d)*"),
             ("CONDOP", r"==|!="),
             ("OP", r"[+*=]"),
@@ -45,6 +46,11 @@ impl Lexer {
                 }
             }
             match typ.as_ref() {
+                "ARROP" => tokens.push({
+                    let s = val.trim_start_matches('[').trim_end_matches(']');
+                    let num: u32 = s.parse().unwrap();
+                    Token::ArrOp(num)
+                }),
                 "NUM" => tokens.push(Token::Num(
                     val.parse::<u64>()
                         .expect("something went wrong parsing a number"),
@@ -59,7 +65,6 @@ impl Lexer {
                 "PAREN_E" => tokens.push(Token::ParenE),
                 "BLOCK_S" => tokens.push(Token::BlockS),
                 "BLOCK_E" => tokens.push(Token::BlockE),
-                "INT" => (),
                 "IF" => tokens.push(Token::If),
                 "WHILE" => tokens.push(Token::While),
                 "RET" => tokens.push(Token::Ret),

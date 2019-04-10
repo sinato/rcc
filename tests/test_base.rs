@@ -168,3 +168,29 @@ fn test_factorial() {
     let code = get_code("test_factorial");
     run(&code, "120");
 }
+
+#[test]
+fn test_arr_declare() {
+    let code = get_code("test_arr_declare");
+    run(&code, "10");
+}
+
+#[test]
+fn test_arr() {
+    let code = get_code("test_arr");
+    run(&code, "22");
+}
+
+#[test]
+#[should_panic]
+fn test_redefinition() {
+    let code = get_code("test_redefinition");
+    run(&code, "0");
+}
+
+#[test]
+#[should_panic]
+fn test_redefinition2() {
+    let code = get_code("test_redefinition2");
+    run(&code, "0");
+}

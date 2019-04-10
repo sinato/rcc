@@ -42,7 +42,7 @@ impl AstFunction {
         };
 
         let mut parameter_tokens = match tokens.pop_paren() {
-            Ok(tokens) => trim_parentheses(tokens),
+            Ok(mut tokens) => trim_parentheses(&mut tokens),
             Err(msg) => panic!(msg),
         };
         let mut parameters: Vec<String> = Vec::new();
@@ -73,8 +73,8 @@ impl AstFunction {
         }
     }
 }
-pub fn parse_function_body(tokens: Tokens) -> Vec<AstStatement> {
-    let mut tokens = trim_block_parentheses(tokens);
+pub fn parse_function_body(mut tokens: Tokens) -> Vec<AstStatement> {
+    let mut tokens = trim_block_parentheses(&mut tokens);
     tokens.reverse();
     let mut statements: Vec<AstStatement> = Vec::new();
     while let Some(_) = tokens.peak() {
@@ -106,8 +106,8 @@ impl AstStatement {
                 Err(msg) => panic!(msg),
             },
             Token::While => match tokens.pop_while_statement() {
-                Ok((condition_tokens, body_tokens)) => AstStatement::WhileStatement(
-                    AstWhileStatement::new(condition_tokens, body_tokens),
+                Ok((mut condition_tokens, body_tokens)) => AstStatement::WhileStatement(
+                    AstWhileStatement::new(&mut condition_tokens, body_tokens),
                 ),
                 Err(msg) => panic!(msg),
             },
@@ -249,11 +249,11 @@ pub enum AstCompoundStatement {
 impl AstCompoundStatement {
     pub fn new(mut tokens: Tokens) -> AstCompoundStatement {
         tokens.reverse();
-        let compound_tokens: Tokens = match tokens.pop_block() {
+        let mut compound_tokens: Tokens = match tokens.pop_block() {
             Ok(tokens) => tokens,
             Err(msg) => panic!(msg),
         };
-        let mut compound_tokens = trim_block_parentheses(compound_tokens);
+        let mut compound_tokens = trim_block_parentheses(&mut compound_tokens);
         compound_tokens.reverse();
         let mut instructions: Vec<AstInstructionStatement> = Vec::new();
         while let Ok(mut instruction_tokens) = compound_tokens.pop_instruction() {
@@ -270,8 +270,8 @@ pub struct AstIfStatement {
     pub block: Box<AstStatement>,
 }
 impl AstIfStatement {
-    pub fn new(condition_tokens: Tokens, body_tokens: Tokens) -> AstIfStatement {
-        let condition_statement = AstConditionalStatement::new(condition_tokens);
+    pub fn new(mut condition_tokens: Tokens, body_tokens: Tokens) -> AstIfStatement {
+        let condition_statement = AstConditionalStatement::new(&mut condition_tokens);
         let block = AstStatement::CompoundStatement(AstCompoundStatement::new(body_tokens));
         let block = Box::new(block);
         AstIfStatement {
@@ -287,7 +287,7 @@ pub struct AstWhileStatement {
     pub block: Box<AstStatement>,
 }
 impl AstWhileStatement {
-    pub fn new(condition_tokens: Tokens, body_tokens: Tokens) -> AstWhileStatement {
+    pub fn new(condition_tokens: &mut Tokens, body_tokens: Tokens) -> AstWhileStatement {
         let condition_statement = AstConditionalStatement::new(condition_tokens);
         let block = AstStatement::CompoundStatement(AstCompoundStatement::new(body_tokens));
         let block = Box::new(block);
@@ -305,13 +305,10 @@ pub struct AstConditionalStatement {
     pub condition_val: AstVal,
 }
 impl AstConditionalStatement {
-    fn new(mut tokens: Tokens) -> AstConditionalStatement {
-        tokens = trim_parentheses(tokens);
+    fn new(tokens: &mut Tokens) -> AstConditionalStatement {
+        let mut tokens: Tokens = trim_parentheses(tokens);
         tokens.reverse();
-        let condition_identifier = match tokens.pop_identifier() {
-            Ok(identifier) => AstIde { identifier },
-            Err(msg) => panic!(msg),
-        };
+        let condition_identifier = AstIde::new(&mut tokens);
         let condition_operator = match tokens.pop_condop() {
             Ok(op) => op,
             Err(msg) => panic!(msg),
@@ -345,6 +342,7 @@ impl AstVal {
         match tokens.peak2() {
             Some(token) => match token {
                 Token::ParenS => AstVal::Call(AstCall::new(tokens)), // Call
+                Token::ArrOp(_) => AstVal::Fin(AstFin::Ide(AstIde::new(tokens))),
                 _ => AstVal::Exp(AstExp::new(tokens)),
             },
             None => AstVal::Fin(AstFin::new(tokens)), // Fin
@@ -406,16 +404,41 @@ impl AstFin {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct AstIde {
-    pub identifier: String,
+pub enum AstIde {
+    Num(AstIdeNumber),
+    Arr(AstIdeArray),
 }
 impl AstIde {
     pub fn new(tokens: &mut Tokens) -> AstIde {
-        match tokens.pop_identifier() {
-            Ok(identifier) => AstIde { identifier },
+        let identifier = match tokens.pop_identifier() {
+            Ok(identifier) => identifier,
             Err(msg) => panic!(msg),
+        };
+        match tokens.peak() {
+            Some(token) => match token {
+                Token::ArrOp(_) => {
+                    let num = match tokens.pop_arrop() {
+                        Ok(num) => num,
+                        Err(msg) => panic!(msg),
+                    };
+                    AstIde::Arr(AstIdeArray { identifier, num })
+                }
+                _ => AstIde::Num(AstIdeNumber { identifier }),
+            },
+            None => AstIde::Num(AstIdeNumber { identifier }),
         }
     }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstIdeNumber {
+    pub identifier: String,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct AstIdeArray {
+    pub identifier: String,
+    pub num: u32,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -455,7 +478,7 @@ impl AstCall {
 fn parse_call_args(tokens: &mut Tokens) -> Result<Vec<AstVal>, String> {
     let mut arguments: Vec<AstVal> = Vec::new();
     let mut tokens = match tokens.pop_paren() {
-        Ok(tokens) => trim_parentheses(tokens),
+        Ok(mut tokens) => trim_parentheses(&mut tokens),
         Err(msg) => return Err(msg),
     };
     if let Some(tokens_vec) = tokens.split_with_comma() {

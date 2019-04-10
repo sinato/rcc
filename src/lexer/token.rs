@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
+    ArrOp(u32),
     Num(u64),
     Op(String),
     CondOp(String),
@@ -237,6 +238,15 @@ impl Tokens {
                 _ => Err("Expect an identifier token".to_string()),
             },
             None => Err("Expect an identifier token".to_string()),
+        }
+    }
+    pub fn pop_arrop(&mut self) -> Result<u32, String> {
+        match self.tokens.pop() {
+            Some(token) => match token {
+                Token::ArrOp(number) => Ok(number),
+                _ => Err("Expect an arrop token".to_string()),
+            },
+            None => Err("Expect an arrop token".to_string()),
         }
     }
     pub fn pop_semicolon(&mut self) -> Result<Token, String> {

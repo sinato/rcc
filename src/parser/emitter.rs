@@ -246,37 +246,77 @@ impl Emitter {
         }
     }
     fn emit_ast_simple_declare(&mut self, ast: AstSimpleDeclare) -> IntValue {
-        let identifier = ast.ide.identifier;
-        let alloca = match self.variables.get(&identifier) {
-            Some(alloca) => alloca,
-            None => self.builder.build_alloca(self.context.i32_type(), &identifier),
-        };
-        self.variables.update(identifier, alloca);
-        self.context.i32_type().const_int(0, false)
+        let const_zero = self.context.i32_type().const_int(0, false);
+        match ast.ide {
+            AstIde::Num(ast) => {
+                let identifier = ast.identifier;
+                let alloca = match self.variables.get(&identifier) {
+                    Some(_) => panic!(format!("redefinition of {:?}", identifier)),
+                    None => self.builder.build_alloca(self.context.i32_type(), &identifier),
+                };
+                self.variables.update(identifier, alloca);
+                const_zero
+            },
+            AstIde::Arr(ast) => {
+                let identifier = ast.identifier;
+                let array_type = self.context.i32_type().array_type(ast.num);
+                let alloca = match self.variables.get(&identifier) {
+                    Some(_) => panic!(format!("redefinition of {:?}", identifier)),
+                    None => self.builder.build_alloca(array_type, &identifier),
+                };
+                self.variables.update(identifier, alloca);
+                const_zero
+            },
+        }
     }
     fn emit_ast_bind_declare(&mut self, ast: AstBindDeclare) -> IntValue {
-        let identifier = ast.ide.identifier;
-        let alloca = match self.variables.get(&identifier) {
-            Some(alloca) => alloca,
-            None => self.builder.build_alloca(self.context.i32_type(), &identifier),
-        };
-        let val = self.emit_ast_val(ast.val);
-        self.builder.build_store(alloca, val);
-        self.variables.update(identifier, alloca);
-        val
+        match ast.ide {
+            AstIde::Num(numide) => {
+                let identifier = numide.identifier;
+                let alloca = match self.variables.get(&identifier) {
+                    Some(_) => panic!(format!("redefinition of {:?}", identifier)),
+                    None => self.builder.build_alloca(self.context.i32_type(), &identifier),
+                };
+                let val = self.emit_ast_val(ast.val);
+                self.builder.build_store(alloca, val);
+                self.variables.update(identifier, alloca);
+                val
+            },
+            AstIde::Arr(_arride) => panic!("not impelemented"), // TODO: impl: int a[3] =  {1, 2, 3};
+        }
     }
-
-    fn emit_ast_bind(&mut self, ast_binding: AstBinding) -> IntValue {
-        let identifier = ast_binding.ide.identifier;
-
-        let alloca = match self.variables.get(&identifier) {
-            Some(alloca) => alloca,
-            None => panic!(format!("Use of undeclared identifier \"{:?}\".", identifier)),
-        };
-        let val = self.emit_ast_val(ast_binding.val);
-        self.builder.build_store(alloca, val);
-        self.variables.update(identifier, alloca);
-        val
+    fn emit_ast_bind(&mut self, ast: AstBinding) -> IntValue {
+        match ast.ide {
+            AstIde::Num(numide) => {
+                let identifier = numide.identifier;
+                let alloca = match self.variables.get(&identifier) {
+                    Some(alloca) => alloca,
+                    None => panic!(format!("use of undeclared identifier \"{:?}\".", identifier)),
+                };
+                let val = self.emit_ast_val(ast.val);
+                self.builder.build_store(alloca, val);
+                self.variables.update(identifier, alloca);
+                val
+            },
+            AstIde::Arr(arr_ast) => {
+                let identifier = arr_ast.identifier;
+                let alloca = match self.variables.get(&identifier) {
+                    Some(alloca) => alloca,
+                    None => panic!(format!("use of undeclared identifier \"{:?}\".", identifier)),
+                };
+                let ptr = unsafe {
+                    self.builder.build_gep(
+                        alloca,
+                        &[self.context.i32_type().const_int(0, false), self.context.i32_type().const_int(arr_ast.num as u64, false)],
+                        "insert"
+                        )
+                };
+                let val = self.emit_ast_val(ast.val);
+                self.builder.build_store(ptr, val);
+                self.variables.update(identifier, alloca);
+                val
+            },
+        }
     }
     fn emit_ast_return(&mut self, ast_ret: AstReturn) -> IntValue {
         let ret = self.emit_ast_val(ast_ret.val);
@@ -310,7 +350,15 @@ impl Emitter {
         self.context.i32_type().const_int(ast_num.number, false)
     }
     fn emit_ast_ide(&mut self, ast_ide: AstIde) -> IntValue {
-        self.builder.build_load(self.variables.get(&ast_ide.identifier).unwrap(), &ast_ide.identifier).into_int_value()
+        // TODO: impl error handling
+        match ast_ide {
+            AstIde::Num(ast) => self.builder.build_load(self.variables.get(&ast.identifier).unwrap(), &ast.identifier).into_int_value(),
+            AstIde::Arr(ast) => {
+                let array = self.builder.build_load(self.variables.get(&ast.identifier).unwrap(), &ast.identifier).into_array_value();
+                // TODO: consider whether to use GEP or ExtractValue
+                self.builder.build_extract_value(array, ast.num, "extracted_value").unwrap().into_int_value()
+            },
+        }
     }
     fn emit_ast_call(&mut self, ast: AstCall) -> IntValue {
         let identifier = ast.func_identifier;
